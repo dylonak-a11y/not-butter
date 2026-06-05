@@ -263,6 +263,13 @@
   .perk-tip { position:fixed; z-index:60; max-width:260px; background:#0c0d0f; border:1px solid #3a3b40; border-radius:6px; padding:8px 10px; box-shadow:0 8px 24px rgba(0,0,0,0.6); pointer-events:none; }
   .perk-tip .ptn { font-weight:700; font-size:12.5px; margin-bottom:3px; }
   .perk-tip .ptd { font-size:11.5px; color:var(--muted); line-height:1.35; }
+
+  .pt-wrap { border:1px solid var(--line); border-radius:12px; margin-bottom:12px; background:rgba(255,255,255,0.01); overflow:hidden; }
+  .pt-head { padding:14px 16px; cursor:pointer; display:flex; align-items:center; gap:10px; font-size:15px; }
+  .pt-head:hover { background:rgba(255,255,255,0.02); }
+  .pt-head .caret { color:var(--muted); transition:0.15s; display:inline-block; } .pt-wrap.open .pt-head .caret { transform:rotate(90deg); }
+  .pt-head .pt-sub { color:var(--muted); font-size:12.5px; margin-left:auto; }
+  .pt-body { display:none; padding:0 16px 16px; } .pt-wrap.open .pt-body { display:block; }
 </style>
 </head>
 <body>
@@ -415,6 +422,8 @@ function midnight(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
 function weekStart(d){ const x=midnight(d); x.setDate(x.getDate()-x.getDay()); return x; }
 function todayMid(){ return midnight(new Date()); }
 function statVal(allTime, key){ return allTime && allTime[key] && allTime[key].basic ? allTime[key].basic.value : 0; }
+// "Total time in activities" = sum of activity durations (matches d2scrub & is consistent everywhere)
+function tadSec(allTime){ return statVal(allTime,"totalActivityDurationSeconds")||statVal(allTime,"secondsPlayed"); }
 function setStatus(html, isErr, target){ const s=$(target||"#status"); if(!s) return; s.className=isErr?"err":""; s.innerHTML=html||""; }
 
 // ---- core lookups ---------------------------------------------------------
@@ -452,7 +461,7 @@ function aggregateStats(statsList){
   const kd={};
   statsList.forEach(s=>{ if(!s||!s.mergedAllCharacters) return;
     const m=s.mergedAllCharacters.merged;
-    if(m&&m.allTime){ add(at,"secondsPlayed",statVal(m.allTime,"secondsPlayed")); add(at,"activitiesEntered",statVal(m.allTime,"activitiesEntered")); }
+    if(m&&m.allTime){ add(at,"secondsPlayed",statVal(m.allTime,"secondsPlayed")); add(at,"totalActivityDurationSeconds",statVal(m.allTime,"totalActivityDurationSeconds")); add(at,"activitiesEntered",statVal(m.allTime,"activitiesEntered")); }
     const res=s.mergedAllCharacters.results||{};
     Object.entries(res).forEach(([mode,v])=>{ if(!out.mergedAllCharacters.results[mode]) out.mergedAllCharacters.results[mode]={allTime:{}}; const dat=out.mergedAllCharacters.results[mode].allTime;
       add(dat,"secondsPlayed",statVal(v.allTime,"secondsPlayed")); add(dat,"activitiesEntered",statVal(v.allTime,"activitiesEntered"));
@@ -616,7 +625,7 @@ function renderTrack(container, member, profile, stats, opts){
   const userInfo=(profile.profile&&profile.profile.data&&profile.profile.data.userInfo)||member;
   const merged=stats&&stats.mergedAllCharacters&&stats.mergedAllCharacters.merged;
   const resultsByMode=(stats&&stats.mergedAllCharacters&&stats.mergedAllCharacters.results)||{};
-  let totalSeconds=merged?statVal(merged.allTime,"secondsPlayed"):0;
+  let totalSeconds=merged?tadSec(merged.allTime):0;
   if(!totalSeconds) totalSeconds=charList.reduce((s,c)=> s+(parseInt(c.minutesPlayedTotal,10)||0)*60,0);
   const activityCount=merged?statVal(merged.allTime,"activitiesEntered"):0;
   const pvpKd = resultsByMode.allPvP?statVal(resultsByMode.allPvP.allTime,"killsDeathsRatio"):0;
@@ -624,7 +633,7 @@ function renderTrack(container, member, profile, stats, opts){
   const highestPower=Math.max(0,...charList.map(c=>c.light||0));
 
   // per-character seconds + class totals
-  const charSeconds=charList.map(c=>{ const cs=stats&&stats.characters&&stats.characters.find(x=>x.characterId===c.characterId); let sec=cs&&cs.merged?statVal(cs.merged.allTime,"secondsPlayed"):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; return sec; });
+  const charSeconds=charList.map(c=>{ const cs=stats&&stats.characters&&stats.characters.find(x=>x.characterId===c.characterId); let sec=cs&&cs.merged?tadSec(cs.merged.allTime):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; return sec; });
   const byClass={0:0,1:0,2:0}; charList.forEach((c,i)=>{ if(byClass[c.classType]!==undefined) byClass[c.classType]+=charSeconds[i]; });
   const mostClass=Object.keys(byClass).reduce((a,b)=> byClass[b]>byClass[a]?b:a,"0");
 
@@ -748,8 +757,6 @@ function renderTrack(container, member, profile, stats, opts){
   .then(hist=>{
     heatLoad.remove(); heatHost.style.display="block"; histDays=hist.days; draw();
     emblemBtn.disabled=false;
-    // Switch the headline numbers to history-summed values (matches d2scrub-style accounting & the calendar).
-    if(hist.totalSec){ refs.heroV.textContent=fmtDuration(hist.totalSec); refs.heroX.textContent=`${commas(hist.totalSec/3600)} hours · ${(hist.totalSec/86400).toFixed(1)} days`; }
     if(!activityCount && hist.totalActivities) refs.activities.textContent=commas(hist.totalActivities);
     const st=computeStreaks(hist.days);
     if(st){ refs.current.textContent=st.current+"d "+st.currentState; refs.longAct.textContent=st.longestActive+"d"; refs.longIna.textContent=st.longestInactive+"d"; }
@@ -821,7 +828,7 @@ async function loadCmpFast(raw){
   const merged=stats.mergedAllCharacters.merged;
   const byClass={0:0,1:0,2:0}; let light=0; const charIds=[];
   datas.forEach(d=>{ const cs=(d.stats&&d.stats.characters)||[]; const chs=(d.profile&&d.profile.characters&&d.profile.characters.data)||{}; Object.values(chs).forEach(c=>{ charIds.push(c.characterId); light=Math.max(light,c.light||0); const mm=cs.find(x=>x.characterId===c.characterId); let sec=mm&&mm.merged?statVal(mm.merged.allTime,"secondsPlayed"):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; if(byClass[c.classType]!==undefined) byClass[c.classType]+=sec; }); });
-  let total=statVal(merged.allTime,"secondsPlayed"); if(!total) total=Object.values(byClass).reduce((a,b)=>a+b,0);
+  let total=tadSec(merged.allTime); if(!total) total=Object.values(byClass).reduce((a,b)=>a+b,0);
   const rm=stats.mergedAllCharacters.results||{};
   const mostClass=Object.keys(byClass).reduce((a,b)=> byClass[b]>byClass[a]?b:a,"0");
   const row={ member, memberships, histDatas:datas, profile:(datas.find(d=>d.hasChars)||{}).profile||{}, stats,
@@ -836,7 +843,7 @@ function cmpRowMetrics(datas){
   const merged=stats.mergedAllCharacters.merged;
   const byClass={0:0,1:0,2:0}; let light=0;
   datas.forEach(d=>{ const cs=(d.stats&&d.stats.characters)||[]; const chs=(d.profile&&d.profile.characters&&d.profile.characters.data)||{}; Object.values(chs).forEach(c=>{ light=Math.max(light,c.light||0); const mm=cs.find(x=>x.characterId===c.characterId); let sec=mm&&mm.merged?statVal(mm.merged.allTime,"secondsPlayed"):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; if(byClass[c.classType]!==undefined) byClass[c.classType]+=sec; }); });
-  let total=statVal(merged.allTime,"secondsPlayed"); if(!total) total=Object.values(byClass).reduce((a,b)=>a+b,0);
+  let total=tadSec(merged.allTime); if(!total) total=Object.values(byClass).reduce((a,b)=>a+b,0);
   const rm=stats.mergedAllCharacters.results||{}; const mostClass=Object.keys(byClass).reduce((a,b)=> byClass[b]>byClass[a]?b:a,"0");
   return { stats, total, activities:statVal(merged.allTime,"activitiesEntered"), byClass, mostClass:CLASS_NAMES[mostClass]||"—", pvpKd: rm.allPvP?statVal(rm.allPvP.allTime,"killsDeathsRatio"):0, pveKd: rm.allPvE?statVal(rm.allPvE.allTime,"killsDeathsRatio"):0, light };
 }
@@ -917,8 +924,14 @@ function renderCompare(){
 }
 function renderFullBreakdowns(){
   const full=$("#cmpFull"); if(!full) return; full.innerHTML="";
-  full.appendChild(el("div","section-title","Full Breakdown — each player"));
-  CMP_ROWS.forEach(r=>{ const block=el("div","player-track"); full.appendChild(block); renderTrack(block, r.member, r.profile, r.stats, { memberships:r.memberships, filter:"all", datas:r.histDatas }); });
+  full.appendChild(el("div","section-title","Full Breakdown — each player (click to expand)"));
+  CMP_ROWS.forEach(r=>{
+    const wrap=el("div","pt-wrap"); const head=el("div","pt-head");
+    head.innerHTML=`<span class="caret">&#9656;</span> <b>${escapeHtml(r.label)}</b> <span class="pt-sub">${fmtDuration(r.total)} &middot; ${commas(r.activities)} activities</span>`;
+    const body=el("div","pt-body"); wrap.appendChild(head); wrap.appendChild(body); full.appendChild(wrap);
+    let rendered=false;
+    head.onclick=()=>{ wrap.classList.toggle("open"); if(wrap.classList.contains("open") && !rendered){ rendered=true; renderTrack(body, r.member, r.profile, r.stats, { memberships:r.memberships, filter:"all", datas:r.histDatas }); } };
+  });
 }
 async function runCompare(){
   if(CMP_PLAYERS.length<2){ setStatus("&#9888; Add at least 2 players.",true,"#cmpStatus"); return; }
