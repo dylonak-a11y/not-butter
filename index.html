@@ -225,6 +225,24 @@
   .inv-item.eq { outline:2px solid var(--gold); outline-offset:-2px; }
   .inv-item .pw { position:absolute; bottom:0; right:0; background:rgba(0,0,0,0.72); color:#fff; font-size:9px; line-height:1.3; padding:0 2px; }
   .inv-item .qty { position:absolute; bottom:0; left:0; background:rgba(0,0,0,0.72); color:#fff; font-size:9px; line-height:1.3; padding:0 2px; }
+
+  .sub-head { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:10px 0 5px; font-weight:700; }
+  .inv-item { cursor:pointer; }
+  .item-pop-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:50; }
+  .item-pop { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:51; width:350px; max-width:92vw; max-height:86vh; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+  .item-pop .ip-head { position:relative; display:flex; gap:12px; align-items:center; padding:14px 16px; }
+  .item-pop .ip-head img { width:50px; height:50px; border-radius:4px; }
+  .item-pop .ip-head.t-exotic { background:linear-gradient(180deg,#ceae33,#a9892a); color:#1a130a; }
+  .item-pop .ip-head.t-legendary { background:#4b3661; } .item-pop .ip-head.t-rare { background:#33506f; }
+  .item-pop .ip-head.t-uncommon { background:#2f5b39; } .item-pop .ip-head.t-common { background:#54585c; }
+  .item-pop .ip-name { font-size:17px; font-weight:800; line-height:1.15; }
+  .item-pop .ip-type { font-size:12px; opacity:0.9; margin-top:2px; }
+  .item-pop .ip-x { position:absolute; top:8px; right:10px; background:transparent; border:0; color:inherit; font-size:20px; cursor:pointer; opacity:0.7; }
+  .ip-stats { padding:12px 16px; }
+  .ip-stat { display:grid; grid-template-columns:130px 32px 1fr; gap:8px; align-items:center; font-size:12px; margin:3px 0; }
+  .ip-stat .sn { color:var(--muted); } .ip-stat .sv { text-align:right; font-weight:700; }
+  .ip-stat .sbar { height:7px; background:#0c1119; border-radius:3px; overflow:hidden; } .ip-stat .sbar > div { height:100%; background:linear-gradient(90deg,var(--gold2),var(--gold)); }
+  .ip-foot { padding:11px 16px; border-top:1px solid var(--line); color:var(--muted); font-size:11.5px; }
 </style>
 </head>
 <body>
@@ -955,6 +973,10 @@ const INV = { defs:null };
 const ITEMTYPE_CAT = { 3:"Weapons", 2:"Armor", 25:"Ghosts", 22:"Ships", 23:"Sparrows", 24:"Emotes", 14:"Emblems", 20:"Mods", 9:"Consumables", 10:"Materials", 8:"Engrams", 17:"Subclasses", 19:"Auras", 30:"Finishers", 29:"Artifact" };
 const CAT_ORDER = ["Weapons","Armor","Ghosts","Ships","Sparrows","Emblems","Emotes","Subclasses","Finishers","Auras","Mods","Consumables","Materials","Engrams","Artifact","Other"];
 const CAT_DEFAULT_OPEN = { Weapons:true, Armor:true };
+const AMMO_SUBS = [ {n:"Primary",f:d=>d.am===1}, {n:"Special",f:d=>d.am===2}, {n:"Heavy",f:d=>d.am===3} ];
+const ARMOR_SUBS = [ {n:"Helmet",h:"3448274439"}, {n:"Gauntlets",h:"3551918588"}, {n:"Chest Armor",h:"14239492"}, {n:"Leg Armor",h:"20886954"}, {n:"Class Item",h:"1585787867"} ].map(x=>({ n:x.n, f:d=>String(d.b)===x.h }));
+const STAT_ORDER = ["4284893193","2961396640","447667954","3614673599","2523465841","4043523819","1240592695","1591432999","155624089","943549884","4188031367","3555269338","2714457168","1345609583","2715839340","925767036","3871231066","2996146975","392767087","1943323491","1735777505","144602215","4244567218"];
+const CAT_SUBS = { Weapons:AMMO_SUBS, Armor:ARMOR_SUBS };
 const TIER_CLASS = { 6:"t-exotic", 5:"t-legendary", 4:"t-rare", 3:"t-uncommon", 2:"t-common", 1:"t-common", 0:"t-common" };
 
 function idbOpen(){ return new Promise((res,rej)=>{ try{ const r=indexedDB.open("guardianclock",1); r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains("kv")) r.result.createObjectStore("kv"); }; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); }
@@ -965,32 +987,34 @@ async function loadManifest(onProgress){
   if(INV.defs) return INV.defs;
   const man=await bungie("/Destiny2/Manifest/",{ headers:authHeaders() });
   const ver=man.version;
-  let compact=await idbGet("items_"+ver);
+  let compact=await idbGet("items_v2_"+ver);
   if(!compact){
     onProgress&&onProgress("Downloading Destiny item database (one-time, ~10–30s)…");
     const path=man.jsonWorldComponentContentPaths.en.DestinyInventoryItemDefinition;
     const res=await fetch(BASE+path); const raw=await res.json();
     compact={};
     for(const h in raw){ const d=raw[h]; const dp=d.displayProperties; if(!dp||!dp.name) continue;
-      compact[h]={ n:dp.name, ic:dp.icon||"", t:(d.inventory&&d.inventory.tierType)||0, it:d.itemType||0, cl:(d.classType===undefined?3:d.classType), eq:!!d.equippable }; }
-    await idbPut("items_"+ver, compact);
+      compact[h]={ n:dp.name, ic:dp.icon||"", t:(d.inventory&&d.inventory.tierType)||0, it:d.itemType||0, b:(d.inventory&&d.inventory.bucketTypeHash)||0, am:(d.equippingBlock&&d.equippingBlock.ammoType)||0, tn:d.itemTypeDisplayName||"", cl:(d.classType===undefined?3:d.classType), eq:!!d.equippable }; }
+    await idbPut("items_v2_"+ver, compact);
   }
-  INV.defs=compact; return compact;
+  let stats=await idbGet("stats_v2_"+ver);
+  if(!stats){ try{ const sp=man.jsonWorldComponentContentPaths.en.DestinyStatDefinition; const sr=await fetch(BASE+sp); const sraw=await sr.json(); stats={}; for(const h in sraw){ const dp=sraw[h].displayProperties; if(dp&&dp.name) stats[h]=dp.name; } await idbPut("stats_v2_"+ver, stats); }catch(e){ stats={}; } }
+  INV.defs=compact; INV.statNames=stats||{}; return compact;
 }
 async function loadInventory(){
   const id=getMyMembershipId(), type=getMyMembershipType();
   if(!type) throw new Error("Please sign out and sign in again to enable inventory.");
-  return bungie(`/Destiny2/${type}/Profile/${id}/?components=100,102,200,201,205,300`,{ headers:authHeaders() });
+  return bungie(`/Destiny2/${type}/Profile/${id}/?components=100,102,200,201,205,300,304`,{ headers:authHeaders() });
 }
 function catOf(d){ return (d&&ITEMTYPE_CAT[d.it])||"Other"; }
 function itemHtml(it, defs, instances){
   const d=defs[it.itemHash]; if(!d) return "";
   const inst=it.itemInstanceId&&instances[it.itemInstanceId];
   const power=inst&&inst.primaryStat?inst.primaryStat.value:0;
-  return `<div class="inv-item ${TIER_CLASS[d.t]||"t-common"}${it.equipped?" eq":""}" data-name="${escapeHtml((d.n||"").toLowerCase())}" title="${escapeHtml(d.n)}${power?" · "+power:""}${it.equipped?" (equipped)":""}">${d.ic?`<img src="${BASE+d.ic}" loading="lazy"/>`:""}${power?`<span class="pw">${power}</span>`:""}${it.quantity>1?`<span class="qty">${it.quantity}</span>`:""}</div>`;
+  return `<div class="inv-item ${TIER_CLASS[d.t]||"t-common"}${it.equipped?" eq":""}" data-hash="${it.itemHash}" data-iid="${it.itemInstanceId||""}" data-name="${escapeHtml((d.n||"").toLowerCase())}" title="${escapeHtml(d.n)}${power?" · "+power:""}${it.equipped?" (equipped)":""}">${d.ic?`<img src="${BASE+d.ic}" loading="lazy"/>`:""}${power?`<span class="pw">${power}</span>`:""}${it.quantity>1?`<span class="qty">${it.quantity}</span>`:""}</div>`;
 }
 function renderInventory(host, profile){
-  const defs=INV.defs;
+  const defs=INV.defs; INV.profile=profile;
   const chars=(profile.characters&&profile.characters.data)||{};
   const charIds=(profile.profile&&profile.profile.data&&profile.profile.data.characterIds)||Object.keys(chars);
   const instances=(profile.itemComponents&&profile.itemComponents.instances&&profile.itemComponents.instances.data)||{};
@@ -1009,18 +1033,44 @@ function renderInventory(host, profile){
   cols.forEach(c=>{ if(c.kind==="vault"){ h+=`<div class="inv-colhead vault"><div class="ch-name">Vault</div><div class="ch-sub">${vaultItems.length} items</div></div>`; }
     else { const ch=chars[c.key]||{}; h+=`<div class="inv-colhead"><div class="ch-name" style="color:${CLASS_COLOR[ch.classType]||"var(--text)"}">${CLASS_NAMES[ch.classType]||"Guardian"}</div><div class="ch-sub">&#9733; ${ch.light||0}</div></div>`; } });
   h+=`</div>`;
+  const colsRow=(arr)=> `<div class="cat-cols">`+arr.map(items=>`<div class="cat-col">`+items.map(it=>itemHtml(it,defs,instances)).join("")+`</div>`).join("")+`</div>`;
   CAT_ORDER.forEach(cat=>{
-    const perCol=colData.map(cd=> cd.items.filter(it=>{ const d=defs[it.itemHash]; return d && catOf(d)===cat; }));
-    const count=perCol.reduce((a,b)=>a+b.length,0); if(!count) return;
-    h+=`<div class="inv-cat ${CAT_DEFAULT_OPEN[cat]?"open":""}" data-cat="${cat}"><div class="cat-head"><span class="caret">&#9656;</span> ${cat} <span class="cat-count">${count}</span></div><div class="cat-body"><div class="cat-cols">`;
-    perCol.forEach(items=>{ h+=`<div class="cat-col">`+items.map(it=> itemHtml(it,defs,instances)).join("")+`</div>`; });
-    h+=`</div></div></div>`;
+    const inCat=colData.map(cd=> cd.items.filter(it=>{ const d=defs[it.itemHash]; return d && catOf(d)===cat; }));
+    const count=inCat.reduce((a,b)=>a+b.length,0); if(!count) return;
+    h+=`<div class="inv-cat ${CAT_DEFAULT_OPEN[cat]?"open":""}" data-cat="${cat}"><div class="cat-head"><span class="caret">&#9656;</span> ${cat} <span class="cat-count">${count}</span></div><div class="cat-body">`;
+    const subs=CAT_SUBS[cat];
+    if(subs){
+      subs.forEach(sub=>{ const subCols=inCat.map(items=> items.filter(it=> sub.f(defs[it.itemHash]))); const sc=subCols.reduce((a,b)=>a+b.length,0); if(!sc) return;
+        h+=`<div class="sub-head">${sub.n} <span class="cat-count">${sc}</span></div>`+colsRow(subCols); });
+      const rest=inCat.map(items=> items.filter(it=> !subs.some(su=> su.f(defs[it.itemHash]))));
+      if(rest.reduce((a,b)=>a+b.length,0)) h+=`<div class="sub-head">Other</div>`+colsRow(rest);
+    } else { h+=colsRow(inCat); }
+    h+=`</div></div>`;
   });
   h+=`</div>`;
   host.innerHTML=h;
   host.querySelectorAll(".cat-head").forEach(head=> head.onclick=()=> head.parentElement.classList.toggle("open"));
+  host.querySelectorAll(".inv-item").forEach(it=> it.onclick=()=> showItemPopup(it.dataset.hash, it.dataset.iid));
   const reload=$("#invReload"); if(reload) reload.onclick=()=> renderInventoryPage(true);
   const se=$("#invSearch"); if(se) se.oninput=()=>{ const q=se.value.toLowerCase(); host.querySelectorAll(".inv-item").forEach(it=>{ it.style.display = (!q||(it.dataset.name||"").indexOf(q)>=0)?"":"none"; }); host.querySelectorAll(".inv-cat").forEach(c=>{ if(q) c.classList.add("open"); }); };
+}
+function showItemPopup(hash, iid){
+  const d=INV.defs&&INV.defs[hash]; if(!d) return;
+  const prof=INV.profile||{};
+  const ic=prof.itemComponents||{};
+  const inst=iid&&ic.instances&&ic.instances.data&&ic.instances.data[iid];
+  const power=inst&&inst.primaryStat?inst.primaryStat.value:0;
+  const statsData=(iid&&ic.stats&&ic.stats.data&&ic.stats.data[iid]&&ic.stats.data[iid].stats)||{};
+  const tierName={6:"Exotic",5:"Legendary",4:"Rare",3:"Uncommon",2:"Common",1:"Common"}[d.t]||"";
+  const tc=TIER_CLASS[d.t]||"t-common";
+  let statsHtml="";
+  const entries=Object.entries(statsData).filter(([sh,sv])=> sv && typeof sv.value==="number"); entries.sort((a,b)=>{ const ia=STAT_ORDER.indexOf(a[0]), ib=STAT_ORDER.indexOf(b[0]); return (ia<0?999:ia)-(ib<0?999:ib); });
+  if(entries.length){ statsHtml=`<div class="ip-stats">`+entries.map(([sh,sv])=>{ const nm=(INV.statNames&&INV.statNames[sh])||"Stat"; const val=sv.value; const bar = val>0&&val<=100 ? `<div class="sbar"><div style="width:${val}%"></div></div>` : `<div></div>`; return `<div class="ip-stat"><span class="sn">${escapeHtml(nm)}</span><span class="sv">${val}</span>${bar}</div>`; }).join("")+`</div>`; }
+  const back=el("div","item-pop-backdrop"); const pop=el("div","item-pop "+tc);
+  pop.innerHTML=`<div class="ip-head ${tc}">${d.ic?`<img src="${BASE+d.ic}"/>`:""}<div><div class="ip-name">${escapeHtml(d.n)}</div><div class="ip-type">${tierName} ${escapeHtml(d.tn||"")}${power?` &middot; &#9650; ${power}`:""}</div></div><button class="ip-x">&times;</button></div>`+statsHtml+`<div class="ip-foot">Move &amp; equip options arrive in the next update.</div>`;
+  const close=()=>{ back.remove(); pop.remove(); };
+  back.onclick=close; pop.querySelector(".ip-x").onclick=close;
+  document.body.appendChild(back); document.body.appendChild(pop);
 }
 async function renderInventoryPage(force){
   const host=$("#invBody");
