@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Guardian Clock — Destiny 2 Playtime Tracker</title>
+<title>Guardian Info — Destiny 2 Playtime Tracker</title>
 <style>
   :root {
     --bg: #0a0e14; --bg2: #11161f; --panel: #161c27; --panel2: #1d2531;
@@ -283,7 +283,7 @@
       <div class="glyph"><span>&#9671;</span></div>
       <div><h1>GUARDIAN</h1><p>tools</p></div>
     </div>
-    <button class="navitem active" data-page="clock"><span class="ni">&#9202;</span> Guardian Clock</button>
+    <button class="navitem active" data-page="clock"><span class="ni">&#9202;</span> Guardian Info</button>
     <button class="navitem" data-page="inventory"><span class="ni">&#127890;</span> Inventory</button>
     <div class="side-foot" id="authArea"><button class="btn" id="signInBtn">Sign in with Bungie</button></div>
   </nav>
@@ -291,7 +291,7 @@
   <main class="content">
 
   <div id="page-clock" class="page active">
-  <div class="page-head"><h1>Guardian Clock</h1><p>Destiny 2 time-played tracker</p></div>
+  <div class="page-head"><h1>Guardian Info</h1><p>Destiny 2 time-played tracker</p></div>
 
   <div class="tabs">
     <button id="tabTrack" class="active">Track</button>
@@ -345,7 +345,7 @@
 
 <script>
 /* =========================================================================
-   GUARDIAN CLOCK — Destiny 2 playtime tracker (single file, client-side)
+   GUARDIAN INFO — Destiny 2 playtime tracker (single file, client-side)
    ========================================================================= */
 const API_KEY   = "420221e617684fa8be878017345ee816";
 const CLIENT_ID = "47366";
@@ -814,7 +814,7 @@ function showRecentPop(){ const pop=$("#recentPop"); const recents=getRecents();
 // =========================================================================
 //  COMPARE TAB
 // =========================================================================
-let CMP_PLAYERS=[], CMP_ROWS=[], CMP_DETAILED=false, CMP_SORT={ key:"total", dir:-1 };
+let CMP_PLAYERS=[], CMP_ROWS=[], CMP_DETAILED=false, CMP_SORT={ key:"__rank", dir:1 }, CMP_GRAPH="total";
 function getCmpRecent(){ return loadJSON("gc_cmp_recent")||[]; }
 function saveCmpRecent(labels){ let r=getCmpRecent(); labels.slice().reverse().forEach(l=>{ r=r.filter(x=>x!==l); r.unshift(l); }); saveJSON("gc_cmp_recent", r.slice(0,12)); renderCmpRecent(); }
 function renderCmpRecent(){ const box=$("#cmpRecent"); if(!box) return; const r=getCmpRecent(); box.innerHTML=""; if(!r.length) return; box.appendChild(el("span","chip-label","Previous:")); r.forEach(lbl=>{ const c=el("span","chip"); c.innerHTML=`<span class="rn">${escapeHtml(lbl)}</span> <span class="x">&times;</span>`; c.querySelector(".rn").onclick=()=> addCmpPlayer(lbl); c.querySelector(".x").onclick=(e)=>{ e.stopPropagation(); saveJSON("gc_cmp_recent", getCmpRecent().filter(x=>x!==lbl)); renderCmpRecent(); }; box.appendChild(c); }); }
@@ -833,7 +833,7 @@ async function loadCmpFast(raw){
   const m=cmpRowMetrics(sub.length?sub:datas);
   const row={ member, memberships, histDatas:datas, profile:(datas.find(d=>d.hasChars)||{}).profile||{}, stats:m.stats,
     label:(member.bungieGlobalDisplayName||"?")+"#"+String(member.bungieGlobalDisplayNameCode||"").padStart(4,"0"),
-    platFilter:defFilter, total:m.total, activities:m.activities, byClass:m.byClass, mostClass:m.mostClass, pvpKd:m.pvpKd, pveKd:m.pveKd, light:m.light,
+    platFilter:defFilter, total:m.total, activities:m.activities, byClass:m.byClass, mostClass:m.mostClass, pvpKd:m.pvpKd, pveKd:m.pveKd, light:m.light, topMode:m.topMode,
     histByMember:null, bestSeason:null, longestStreak:null, longestSession:null, longestInactive:null, activeDays:null };
   SESSION.cmp[member.membershipId]=row; return row;
 }
@@ -844,7 +844,8 @@ function cmpRowMetrics(datas){
   datas.forEach(d=>{ const cs=(d.stats&&d.stats.characters)||[]; const chs=(d.profile&&d.profile.characters&&d.profile.characters.data)||{}; Object.values(chs).forEach(c=>{ light=Math.max(light,c.light||0); const mm=cs.find(x=>x.characterId===c.characterId); let sec=mm&&mm.merged?tadSec(mm.merged.allTime):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; if(byClass[c.classType]!==undefined) byClass[c.classType]+=sec; }); });
   let total=tadSec(merged.allTime); if(!total) total=Object.values(byClass).reduce((a,b)=>a+b,0);
   const rm=stats.mergedAllCharacters.results||{}; const mostClass=Object.keys(byClass).reduce((a,b)=> byClass[b]>byClass[a]?b:a,"0");
-  return { stats, total, activities:statVal(merged.allTime,"activitiesEntered"), byClass, mostClass:CLASS_NAMES[mostClass]||"—", pvpKd: rm.allPvP?statVal(rm.allPvP.allTime,"killsDeathsRatio"):0, pveKd: rm.allPvE?statVal(rm.allPvE.allTime,"killsDeathsRatio"):0, light };
+  let topMode="—", topSec=0; Object.keys(rm).forEach(k=>{ if(!PRETTY_MODE[k]) return; const sec=statVal(rm[k].allTime,"secondsPlayed"); if(sec>topSec){ topSec=sec; topMode=PRETTY_MODE[k]; } });
+  return { stats, total, activities:statVal(merged.allTime,"activitiesEntered"), byClass, mostClass:CLASS_NAMES[mostClass]||"—", pvpKd: rm.allPvP?statVal(rm.allPvP.allTime,"killsDeathsRatio"):0, pveKd: rm.allPvE?statVal(rm.allPvE.allTime,"killsDeathsRatio"):0, light, topMode };
 }
 function computeDetailed(row){
   if(!row.histByMember) return;
@@ -858,28 +859,25 @@ function setRowPlatform(row, filter){
   row.platFilter=filter;
   const datas = filter==="all" ? row.histDatas : row.histDatas.filter(d=>String(d.m.membershipId)===String(filter));
   const m=cmpRowMetrics(datas.length?datas:row.histDatas);
-  row.stats=m.stats; row.total=m.total; row.activities=m.activities; row.byClass=m.byClass; row.mostClass=m.mostClass; row.pvpKd=m.pvpKd; row.pveKd=m.pveKd; row.light=m.light;
+  row.stats=m.stats; row.total=m.total; row.activities=m.activities; row.byClass=m.byClass; row.mostClass=m.mostClass; row.pvpKd=m.pvpKd; row.pveKd=m.pveKd; row.light=m.light; row.topMode=m.topMode;
   if(row.histByMember) computeDetailed(row);
 }
 
-function rankingColumns(detailed){
-  const cols=[
+function rankingColumns(){
+  return [
     { id:"total", t:"Total Time", get:r=>r.total, f:v=>fmtDuration(v), hi:"max" },
     { id:"activities", t:"Activities", get:r=>r.activities, f:v=>v?commas(v):"—", hi:"max" },
     { id:"pvpKd", t:"PvP K/D", get:r=>r.pvpKd, f:v=>v?v.toFixed(2):"—", hi:"max" },
     { id:"pveKd", t:"PvE K/D", get:r=>r.pveKd, f:v=>v?v.toFixed(2):"—", hi:"max" },
     { id:"light", t:"Power", get:r=>r.light, f:v=>v||"—", hi:"max" },
   ];
-  if(detailed){
-    cols.push({ id:"longestStreak", t:"Best Streak", get:r=>r.longestStreak||0, f:v=>v?v+"d":"—", hi:"max" });
-    cols.push({ id:"longestSession", t:"Long Session", get:r=>r.longestSession||0, f:v=>v?fmtDuration(v):"—", hi:"max" });
-  }
-  return cols;
 }
 function miscColumns(detailed){
-  const cols=[ { id:"mostClass", t:"Top Class", get:r=>r.mostClass, f:v=>v } ];
+  const cols=[ { id:"mostClass", t:"Top Class", get:r=>r.mostClass, f:v=>v }, { id:"topMode", t:"Top Activity", get:r=>r.topMode||"—", f:v=>v } ];
   if(detailed){
     cols.push({ id:"bestSeason", t:"Top Season", get:r=> r.bestSeason?r.bestSeason.name.replace(/^Season of |^Season: |^Episode: /,""):"—", f:v=>v });
+    cols.push({ id:"longestStreak", t:"Best Streak", get:r=> r.longestStreak?r.longestStreak+"d":"—", f:v=>v });
+    cols.push({ id:"longestSession", t:"Long Session", get:r=> r.longestSession?fmtDuration(r.longestSession):"—", f:v=>v });
     cols.push({ id:"activeDays", t:"Days Played", get:r=> r.activeDays?commas(r.activeDays):"—", f:v=>v });
     cols.push({ id:"longestInactive", t:"Longest Break", get:r=> r.longestInactive?r.longestInactive+"d":"—", f:v=>v });
   }
@@ -895,7 +893,8 @@ function cmpPodium(rows, rankMetrics){
   return `<div class="cmp-podium">`+pods.map(p=>{ const t=p.who&&tally[p.who]?tally[p.who][p.key]:0; const lbl=p.key==="top"?("category win"+(t!==1?"s":"")):p.key==="mid"?("mid finish"+(t!==1?"es":"")):("last place"+(t!==1?"s":"")); return `<div class="pod${p.first?" first":""}"><div class="pt">${p.t}</div><div class="pw">${p.who?escapeHtml(p.who):"—"}</div><div class="ps">${t} ${lbl}</div></div>`; }).join("")+`</div>`;
 }
 function cmpTableHtml(cols, rows, placeOf, maxes, sortable, showPlat){
-  let html=`<div class="cmp-table-wrap"><table class="cmp"><thead><tr><th class="rank">#</th><th class="name">Player</th>`;
+  const rkArrow=sortable&&CMP_SORT.key==="__rank"?(CMP_SORT.dir<0?" ▼":" ▲"):"";
+  let html=`<div class="cmp-table-wrap"><table class="cmp"><thead><tr><th class="rank"${sortable?` data-col="__rank"`:""}>#<span class="arr">${rkArrow}</span></th><th class="name">Player</th>`;
   cols.forEach(c=>{ const arrow=sortable&&CMP_SORT.key===c.id?(CMP_SORT.dir<0?" ▼":" ▲"):""; html+=`<th ${sortable&&c.hi==="max"?`data-col="${c.id}"`:""}>${c.t}<span class="arr">${arrow}</span></th>`; });
   html+=`</tr></thead><tbody>`;
   rows.forEach(r=>{ const place=placeOf[r.label]; const medal=place===1?"🥇":place===2?"🥈":place===3?"🥉":String(place);
@@ -907,29 +906,35 @@ function cmpTableHtml(cols, rows, placeOf, maxes, sortable, showPlat){
 }
 function renderCompare(){
   const host=$("#cmpResults"); host.style.display="block";
-  const rankCols=rankingColumns(CMP_DETAILED), miscCols=miscColumns(CMP_DETAILED);
-  const sortCol=rankCols.find(c=>c.id===CMP_SORT.key)||rankCols[0];
-  const rows=CMP_ROWS.slice().sort((a,b)=>{ let va=sortCol.get(a), vb=sortCol.get(b); if(typeof va==="string") return CMP_SORT.dir*va.localeCompare(vb); return CMP_SORT.dir*((va||0)-(vb||0)); });
-  const maxes={}; rankCols.forEach(c=>{ if(c.hi==="max") maxes[c.id]=Math.max(...rows.map(r=>c.get(r)||0)); });
+  const rankCols=rankingColumns(), miscCols=miscColumns(CMP_DETAILED);
   const rankMetrics=rankCols.filter(c=>c.hi==="max");
-  const scoreOf={}; rows.forEach(r=> scoreOf[r.label]=0);
-  rankMetrics.forEach(c=>{ const sorted=rows.slice().sort((a,b)=>(c.get(b)||0)-(c.get(a)||0)); sorted.forEach((r,i)=> scoreOf[r.label]+=i); });
-  const placeOf={}; rows.slice().sort((a,b)=> scoreOf[a.label]-scoreOf[b.label]).forEach((r,i)=> placeOf[r.label]=i+1);
+  // overall placement (independent of display sort)
+  const scoreOf={}; CMP_ROWS.forEach(r=> scoreOf[r.label]=0);
+  rankMetrics.forEach(c=>{ const sorted=CMP_ROWS.slice().sort((a,b)=>(c.get(b)||0)-(c.get(a)||0)); sorted.forEach((r,i)=> scoreOf[r.label]+=i); });
+  const placeOf={}; CMP_ROWS.slice().sort((a,b)=> scoreOf[a.label]-scoreOf[b.label]).forEach((r,i)=> placeOf[r.label]=i+1);
+  // display sort
+  let rows=CMP_ROWS.slice();
+  if(CMP_SORT.key==="__rank"){ rows.sort((a,b)=> CMP_SORT.dir*((placeOf[a.label]||99)-(placeOf[b.label]||99))); }
+  else { const sc=rankCols.find(c=>c.id===CMP_SORT.key)||rankCols[0]; rows.sort((a,b)=>{ let va=sc.get(a), vb=sc.get(b); if(typeof va==="string") return CMP_SORT.dir*va.localeCompare(vb); return CMP_SORT.dir*((va||0)-(vb||0)); }); }
+  const maxes={}; rankCols.forEach(c=>{ if(c.hi==="max") maxes[c.id]=Math.max(...rows.map(r=>c.get(r)||0)); });
 
-  let html=cmpPodium(rows, rankMetrics);
-  html+=`<div class="section-title" style="margin-top:8px;">Rankings <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted);font-size:11px;">— rank = combined standing across these columns</span></div>`;
+  let html=cmpPodium(CMP_ROWS, rankMetrics);
+  html+=`<div class="section-title" style="margin-top:8px;">Rankings <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted);font-size:11px;">— rank combines these 5 columns · click # to reset</span></div>`;
   html+=cmpTableHtml(rankCols, rows, placeOf, maxes, true, true);
-  const maxT=Math.max(...rows.map(r=>r.total));
-  html+=`<div class="cmp-bars"><div class="section-title" style="margin-top:24px;">Total Time</div>`;
-  rows.slice().sort((a,b)=>b.total-a.total).forEach(r=>{ html+=`<div class="cmp-bar-row"><div>${escapeHtml(r.label)}</div><div class="bt"><div class="bf" style="width:${(r.total/maxT*100).toFixed(1)}%"></div></div><div>${fmtDuration(r.total)}</div></div>`; });
+  // graph with selectable metric
+  const gCol=rankCols.find(c=>c.id===CMP_GRAPH)||rankCols[0];
+  const gMax=Math.max(...rows.map(r=>gCol.get(r)||0))||1;
+  html+=`<div class="cmp-bars"><div class="section-title" style="margin-top:24px;">Graph: <select id="cmpGraphSel" class="inv-ctrl">`+rankCols.map(c=>`<option value="${c.id}"${c.id===CMP_GRAPH?" selected":""}>${c.t}</option>`).join("")+`</select></div>`;
+  rows.slice().sort((a,b)=>(gCol.get(b)||0)-(gCol.get(a)||0)).forEach(r=>{ const val=gCol.get(r)||0; html+=`<div class="cmp-bar-row"><div>${escapeHtml(r.label)}</div><div class="bt"><div class="bf" style="width:${(val/gMax*100).toFixed(1)}%"></div></div><div>${gCol.f(val,r)}</div></div>`; });
   html+=`</div>`;
   html+=`<div class="section-title" style="margin-top:24px;">Other Info</div>`+cmpTableHtml(miscCols, rows, placeOf, null, false, false);
-  if(!CMP_DETAILED) html+=`<div style="margin-top:18px;"><button class="btn" id="cmpDetailBtn">Run detailed comparison (adds streaks, sessions, seasons + full breakdowns)</button></div>`;
+  if(!CMP_DETAILED) html+=`<div style="margin-top:18px;"><button class="btn" id="cmpDetailBtn">Run detailed comparison (adds streaks, sessions, seasons — does not affect rankings)</button></div>`;
   html+=`<div class="cmp-full" id="cmpFull"></div>`;
   host.innerHTML=html;
-  host.querySelectorAll("th[data-col]").forEach(th=> th.onclick=()=>{ const k=th.dataset.col; if(CMP_SORT.key===k) CMP_SORT.dir*=-1; else { CMP_SORT.key=k; CMP_SORT.dir=-1; } renderCompare(); });
+  host.querySelectorAll("th[data-col]").forEach(th=> th.onclick=()=>{ const k=th.dataset.col; if(CMP_SORT.key===k) CMP_SORT.dir*=-1; else { CMP_SORT.key=k; CMP_SORT.dir = (k==="__rank")?1:-1; } renderCompare(); });
   host.querySelectorAll("td.name a").forEach(a=> a.onclick=()=> goToTrack(a.dataset.label));
   host.querySelectorAll("select.cmp-plat").forEach(sel=> sel.onchange=()=>{ const r=CMP_ROWS.find(x=>x.label===sel.dataset.label); if(r){ setRowPlatform(r, sel.value); renderCompare(); } });
+  const gsel=$("#cmpGraphSel"); if(gsel) gsel.onchange=()=>{ CMP_GRAPH=gsel.value; renderCompare(); };
   if(!CMP_DETAILED){ const b=$("#cmpDetailBtn"); if(b) b.onclick=runDetailedCompare; }
   else renderFullBreakdowns();
 }
