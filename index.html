@@ -124,10 +124,20 @@
   .hcell.evt-exp { box-shadow: inset 0 0 0 1.5px var(--evt-exp); }
   .hcell.evt-season { box-shadow: inset 0 0 0 1.5px var(--evt-season); }
   .hcell.evt-raid { box-shadow: inset 0 0 0 1.5px var(--evt-raid); }
-  .hcell.pulse-ok { animation: pOk 1.7s ease-in-out infinite; }
-  .hcell.pulse-miss { animation: pMiss 1.7s ease-in-out infinite; }
-  @keyframes pOk { 0%,100%{ box-shadow: inset 0 0 0 0 rgba(245,212,154,0);} 50%{ box-shadow: inset 0 0 0 2px var(--gold);} }
-  @keyframes pMiss { 0%,100%{ box-shadow: inset 0 0 0 0 rgba(229,115,115,0);} 50%{ box-shadow: inset 0 0 0 2px var(--bad);} }
+  .hcell.pulse-ok { animation: pOk 1.3s ease-in-out infinite; position:relative; z-index:3; }
+  .hcell.pulse-miss { animation: pMiss 1.3s ease-in-out infinite; position:relative; z-index:3; }
+  @keyframes pOk { 0%,100%{ box-shadow:0 0 0 0 rgba(245,212,154,0.2); transform:scale(1);} 50%{ box-shadow:0 0 9px 3px var(--gold); transform:scale(1.4);} }
+  @keyframes pMiss { 0%,100%{ box-shadow:0 0 0 0 rgba(229,115,115,0.2); transform:scale(1);} 50%{ box-shadow:0 0 9px 3px var(--bad); transform:scale(1.4);} }
+  .plat-toggle { display:flex; gap:6px; flex-wrap:wrap; margin:-4px 0 16px; }
+  .plat-toggle button { background:var(--bg2); border:1px solid var(--line); color:var(--muted); padding:5px 12px; border-radius:7px; cursor:pointer; font-size:12px; font-weight:600; }
+  .plat-toggle button.active { color:var(--gold); border-color:var(--gold2); background:var(--panel2); }
+  .cmp-podium { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px; }
+  .cmp-podium .pod { border:1px solid var(--line); border-radius:12px; background:linear-gradient(180deg,var(--panel2),var(--bg2)); padding:14px 16px; text-align:center; }
+  .cmp-podium .pod.first { border-color:var(--gold2); }
+  .cmp-podium .pod .pt { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+  .cmp-podium .pod .pw { font-size:18px; font-weight:800; color:var(--gold); margin:5px 0 2px; }
+  .cmp-podium .pod .ps { font-size:11.5px; color:var(--muted); }
+  @media(max-width:640px){ .cmp-podium{ grid-template-columns:1fr; } }
   .heat-scroll { overflow-x: auto; padding-bottom: 6px; }
   .emblem-panel { border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:14px 16px; margin:4px 0 16px; }
   .emblem-panel .ebtn-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
@@ -326,6 +336,47 @@ async function findMembership(raw){
 async function getProfile(type,id){ return bungie(`/Destiny2/${type}/Profile/${id}/?components=100,200`,{ headers:authHeaders() }); }
 async function getAccountStats(type,id){ return bungie(`/Destiny2/${type}/Account/${id}/Stats/`,{ headers:authHeaders() }); }
 
+// ---- multi-platform aggregation + in-session cache -----------------------
+const SESSION = { mem:{}, data:{}, cmp:{} };
+async function getLinkedMemberships(type, id){
+  try{
+    const r=await bungie(`/Destiny2/${type}/Profile/${id}/LinkedProfiles/?getAllMemberships=true`,{ headers:authHeaders() });
+    const profs=(r&&r.profiles)||[];
+    if(!profs.length) return null;
+    return profs.map(p=>({ membershipType:p.membershipType, membershipId:p.membershipId, bungieGlobalDisplayName:p.bungieGlobalDisplayName, bungieGlobalDisplayNameCode:p.bungieGlobalDisplayNameCode, dateLastPlayed:p.dateLastPlayed, isPrimary:!!p.isCrossSavePrimary }));
+  }catch(e){ return null; }
+}
+async function resolveMembershipData(m){
+  const key=m.membershipId; if(SESSION.data[key]) return SESSION.data[key];
+  const [profile,stats]=await Promise.all([ getProfile(m.membershipType,m.membershipId).catch(()=>null), getAccountStats(m.membershipType,m.membershipId).catch(()=>null) ]);
+  const chars=(profile&&profile.characters&&profile.characters.data)||{};
+  const d={ m, profile, stats, charIds:Object.keys(chars), hasChars:Object.keys(chars).length>0 };
+  SESSION.data[key]=d; return d;
+}
+function aggregateStats(statsList){
+  const out={ mergedAllCharacters:{ merged:{ allTime:{} }, results:{} }, characters:[] };
+  const at=out.mergedAllCharacters.merged.allTime;
+  const add=(dst,k,v)=>{ if(!dst[k]) dst[k]={basic:{value:0}}; dst[k].basic.value+=v||0; };
+  const kd={};
+  statsList.forEach(s=>{ if(!s||!s.mergedAllCharacters) return;
+    const m=s.mergedAllCharacters.merged;
+    if(m&&m.allTime){ add(at,"secondsPlayed",statVal(m.allTime,"secondsPlayed")); add(at,"activitiesEntered",statVal(m.allTime,"activitiesEntered")); }
+    const res=s.mergedAllCharacters.results||{};
+    Object.entries(res).forEach(([mode,v])=>{ if(!out.mergedAllCharacters.results[mode]) out.mergedAllCharacters.results[mode]={allTime:{}}; const dat=out.mergedAllCharacters.results[mode].allTime;
+      add(dat,"secondsPlayed",statVal(v.allTime,"secondsPlayed")); add(dat,"activitiesEntered",statVal(v.allTime,"activitiesEntered"));
+      kd[mode]=kd[mode]||{k:0,d:0}; kd[mode].k+=statVal(v.allTime,"kills"); kd[mode].d+=statVal(v.allTime,"deaths"); });
+    if(s.characters) s.characters.forEach(c=> out.characters.push(c));
+  });
+  Object.entries(kd).forEach(([mode,v])=>{ if(out.mergedAllCharacters.results[mode]) out.mergedAllCharacters.results[mode].allTime.killsDeathsRatio={basic:{value: v.d? v.k/v.d : v.k}}; });
+  return out;
+}
+function mergeHistories(hists){
+  const days={}; let totalActivities=0, sessionSec=0, maxSession=0, partial=false;
+  hists.forEach(h=>{ if(!h) return; for(const k in h.days){ const d=days[k]||{s:0,c:0}; d.s+=h.days[k].s; d.c+=h.days[k].c; days[k]=d; } totalActivities+=h.totalActivities||0; sessionSec+=h.sessionSec||0; maxSession=Math.max(maxSession,h.maxSession||0); partial=partial||!!h.partial; });
+  const totalSec=Object.values(days).reduce((a,d)=>a+d.s,0);
+  return { days, totalActivities, sessionSec, maxSession, totalSec, partial };
+}
+
 // ---- activity history → daily map, cached incrementally -------------------
 function loadJSON(k){ try{ return JSON.parse(localStorage.getItem(k)||"null"); }catch(e){ return null; } }
 function saveJSON(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){ pruneHistCaches(); try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e2){} } }
@@ -465,7 +516,8 @@ const PRETTY_MODE = { allPvE:"PvE", allPvP:"Crucible (PvP)", allPvPCompetitive:"
 // =========================================================================
 //  REUSABLE TRACK RENDERER  (renders a full breakdown into `container`)
 // =========================================================================
-function renderTrack(container, member, profile, stats){
+function renderTrack(container, member, profile, stats, opts){
+  opts=opts||{};
   container.innerHTML=""; container.style.display="block";
   const characters=(profile.characters&&profile.characters.data)||{};
   const charList=Object.values(characters).sort((a,b)=> new Date(b.dateLastPlayed)-new Date(a.dateLastPlayed));
@@ -492,6 +544,14 @@ function renderTrack(container, member, profile, stats){
   const isMe=!!getToken()&&String(member.membershipId)===String(getMyMembershipId());
   head.appendChild(el("div","info",`<h2>${escapeHtml(name)}${code?`<span class="tag">#${String(code).padStart(4,"0")}</span>`:""} ${isMe?'<span class="me-badge">YOU</span>':""}<span class="platform-pill">${PLATFORMS[member.membershipType]||"Cross Save"}</span></h2><div class="sub">${charList.length} character${charList.length!==1?"s":""} &middot; last played ${timeAgo(profile.profile&&profile.profile.data&&profile.profile.data.dateLastPlayed)}</div>`));
   container.appendChild(head);
+
+  if(opts.memberships && opts.memberships.length>1 && opts.onFilter){
+    const pt=el("div","plat-toggle");
+    const mkb=(label,val)=>{ const b=el("button",null,label); if(String(opts.filter||"all")===String(val)) b.className="active"; b.onclick=()=>opts.onFilter(val); return b; };
+    pt.appendChild(mkb("All platforms","all"));
+    opts.memberships.forEach(m=> pt.appendChild(mkb(PLATFORMS[m.membershipType]||("Platform "+m.membershipType), m.membershipId)));
+    container.appendChild(pt);
+  }
 
   // stat tiles (some fill in after history)
   const sg=el("div","stat-grid");
@@ -590,14 +650,15 @@ function renderTrack(container, member, profile, stats){
   emblemBtn.onclick=checkEmblem;
 
   // async history load
-  const charIds=charList.map(c=>c.characterId);
-  fetchHistory(member.membershipType, member.membershipId, charIds, (pages)=>{ const bar=heatLoad.querySelector(".histbar"); if(bar) bar.style.width=Math.min(95,pages*6)+"%"; })
+  const histList = (opts.datas&&opts.datas.length) ? opts.datas : [{ m:member, charIds:charList.map(c=>c.characterId) }];
+  Promise.all(histList.map(d=> fetchHistory(d.m.membershipType, d.m.membershipId, d.charIds, (pages)=>{ const bar=heatLoad.querySelector(".histbar"); if(bar) bar.style.width=Math.min(95,pages*5)+"%"; })))
+  .then(hists=> mergeHistories(hists))
   .then(hist=>{
     heatLoad.remove(); heatHost.style.display="block"; histDays=hist.days; draw();
     emblemBtn.disabled=false;
     // Switch the headline numbers to history-summed values (matches d2scrub-style accounting & the calendar).
     if(hist.totalSec){ refs.heroV.textContent=fmtDuration(hist.totalSec); refs.heroX.textContent=`${commas(hist.totalSec/3600)} hours · ${(hist.totalSec/86400).toFixed(1)} days`; }
-    if(hist.totalActivities) refs.activities.textContent=commas(hist.totalActivities);
+    if(!activityCount && hist.totalActivities) refs.activities.textContent=commas(hist.totalActivities);
     const st=computeStreaks(hist.days);
     if(st){ refs.current.textContent=st.current+"d "+st.currentState; refs.longAct.textContent=st.longestActive+"d"; refs.longIna.textContent=st.longestInactive+"d"; }
     if(hist.sessionSec) refs.destiny.textContent=fmtDuration(hist.sessionSec);
@@ -611,20 +672,28 @@ function renderTrack(container, member, profile, stats){
 // =========================================================================
 //  TRACK TAB
 // =========================================================================
+async function showPlayer(container, primary, filter){
+  filter=filter||"all";
+  let memberships=SESSION.mem[primary.membershipId];
+  if(!memberships){ memberships=await getLinkedMemberships(primary.membershipType, primary.membershipId); if(!memberships||!memberships.length) memberships=[primary]; SESSION.mem[primary.membershipId]=memberships; }
+  const useList = filter==="all" ? memberships : memberships.filter(m=>String(m.membershipId)===String(filter));
+  const datas=(await Promise.all(useList.map(m=> resolveMembershipData(m)))).filter(d=> d.stats || d.hasChars);
+  if(!datas.length) throw new Error("This profile has no public characters or stats.");
+  const aggStats=aggregateStats(datas.map(d=>d.stats));
+  const primData=datas.find(d=> d.hasChars && String(d.m.membershipId)===String(primary.membershipId)) || datas.find(d=>d.hasChars) || datas[0];
+  renderTrack(container, primary, (primData&&primData.profile)||{}, aggStats, { memberships, filter, datas, onFilter:(fl)=>{ showPlayer(container, primary, fl).catch(e=>setStatus("&#9888; "+escapeHtml(e.message),true)); } });
+}
 async function runSearch(raw){
   if(!raw) return; const pop=$("#recentPop"); if(pop) pop.classList.remove("open");
   $("#results").style.display="none";
   setStatus('<span class="spinner"></span> Searching for '+escapeHtml(raw)+' …');
   try{
     const member=await findMembership(raw);
-    setStatus('<span class="spinner"></span> Loading profile &amp; stats …');
-    const [profile,stats]=await Promise.all([ getProfile(member.membershipType,member.membershipId), getAccountStats(member.membershipType,member.membershipId).catch(()=>null) ]);
-    if(!profile||!profile.characters||!profile.characters.data||!Object.keys(profile.characters.data).length) throw new Error("This profile has no characters or its data is private.");
-    setStatus("");
-    const ui=(profile.profile&&profile.profile.data&&profile.profile.data.userInfo)||member;
-    const label=(ui.bungieGlobalDisplayName||ui.displayName)+"#"+String(ui.bungieGlobalDisplayNameCode||member.bungieGlobalDisplayNameCode||"").padStart(4,"0");
+    setStatus('<span class="spinner"></span> Loading all platforms …');
+    const label=(member.bungieGlobalDisplayName||String(raw).split("#")[0])+"#"+String(member.bungieGlobalDisplayNameCode||String(raw).split("#")[1]||"").padStart(4,"0");
     pushRecent(member,label);
-    renderTrack($("#results"), member, profile, stats);
+    await showPlayer($("#results"), member, "all");
+    setStatus("");
     $("#results").scrollIntoView({ behavior:"smooth", block:"start" });
   }catch(e){ setStatus("&#9888; "+escapeHtml(e.message), true); }
 }
@@ -649,19 +718,23 @@ function addCmpPlayer(raw){ raw=(raw||"").trim(); if(!raw) return; if(!parseBung
 
 async function loadCmpFast(raw){
   const member=await findMembership(raw);
-  const [profile,stats]=await Promise.all([ getProfile(member.membershipType,member.membershipId), getAccountStats(member.membershipType,member.membershipId).catch(()=>null) ]);
-  const chars=(profile.characters&&profile.characters.data)||{}; const charList=Object.values(chars);
-  const merged=stats&&stats.mergedAllCharacters&&stats.mergedAllCharacters.merged;
-  let total=merged?statVal(merged.allTime,"secondsPlayed"):0; if(!total) total=charList.reduce((s,c)=>s+(parseInt(c.minutesPlayedTotal,10)||0)*60,0);
-  const byClass={0:0,1:0,2:0}; charList.forEach(c=>{ const cs=stats&&stats.characters&&stats.characters.find(x=>x.characterId===c.characterId); let sec=cs&&cs.merged?statVal(cs.merged.allTime,"secondsPlayed"):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; if(byClass[c.classType]!==undefined) byClass[c.classType]+=sec; });
-  const rm=(stats&&stats.mergedAllCharacters&&stats.mergedAllCharacters.results)||{};
+  if(SESSION.cmp[member.membershipId]) return SESSION.cmp[member.membershipId];
+  let memberships=SESSION.mem[member.membershipId];
+  if(!memberships){ memberships=await getLinkedMemberships(member.membershipType, member.membershipId); if(!memberships||!memberships.length) memberships=[member]; SESSION.mem[member.membershipId]=memberships; }
+  const datas=(await Promise.all(memberships.map(m=> resolveMembershipData(m)))).filter(d=> d.stats || d.hasChars);
+  const stats=aggregateStats(datas.map(d=>d.stats));
+  const merged=stats.mergedAllCharacters.merged;
+  const byClass={0:0,1:0,2:0}; let light=0; const charIds=[];
+  datas.forEach(d=>{ const cs=(d.stats&&d.stats.characters)||[]; const chs=(d.profile&&d.profile.characters&&d.profile.characters.data)||{}; Object.values(chs).forEach(c=>{ charIds.push(c.characterId); light=Math.max(light,c.light||0); const mm=cs.find(x=>x.characterId===c.characterId); let sec=mm&&mm.merged?statVal(mm.merged.allTime,"secondsPlayed"):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; if(byClass[c.classType]!==undefined) byClass[c.classType]+=sec; }); });
+  let total=statVal(merged.allTime,"secondsPlayed"); if(!total) total=Object.values(byClass).reduce((a,b)=>a+b,0);
+  const rm=stats.mergedAllCharacters.results||{};
   const mostClass=Object.keys(byClass).reduce((a,b)=> byClass[b]>byClass[a]?b:a,"0");
-  const ui=(profile.profile&&profile.profile.data&&profile.profile.data.userInfo)||member;
-  return { member, profile, stats, label:(ui.bungieGlobalDisplayName||ui.displayName)+"#"+String(ui.bungieGlobalDisplayNameCode||"").padStart(4,"0"),
-    total, activities: merged?statVal(merged.allTime,"activitiesEntered"):0, byClass, mostClass: CLASS_NAMES[mostClass]||"—",
+  const row={ member, memberships, histDatas:datas, profile:(datas.find(d=>d.hasChars)||{}).profile||{}, stats,
+    label:(member.bungieGlobalDisplayName||"?")+"#"+String(member.bungieGlobalDisplayNameCode||"").padStart(4,"0"),
+    total, activities: statVal(merged.allTime,"activitiesEntered"), byClass, mostClass: CLASS_NAMES[mostClass]||"—",
     pvpKd: rm.allPvP?statVal(rm.allPvP.allTime,"killsDeathsRatio"):0, pveKd: rm.allPvE?statVal(rm.allPvE.allTime,"killsDeathsRatio"):0,
-    light: Math.max(0,...charList.map(c=>c.light||0)), charIds: charList.map(c=>c.characterId),
-    bestSeason:null, longestStreak:null, longestSession:null };
+    light, charIds, bestSeason:null, longestStreak:null, longestSession:null };
+  SESSION.cmp[member.membershipId]=row; return row;
 }
 
 function compareColumns(detailed){
@@ -688,7 +761,21 @@ function renderCompare(){
   const rows=CMP_ROWS.slice().sort((a,b)=>{ let va=sortCol.get(a), vb=sortCol.get(b); if(typeof va==="string"){ return CMP_SORT.dir*va.localeCompare(vb); } return CMP_SORT.dir*((va||0)-(vb||0)); });
   const maxes={}; cols.forEach(c=>{ if(c.hi==="max") maxes[c.id]=Math.max(...rows.map(r=>c.get(r)||0)); });
 
-  let html=`<div class="cmp-table-wrap"><table class="cmp"><thead><tr><th class="name">Player</th>`;
+  // Top-3 podium: rank players across all numeric columns
+  let podHtml="";
+  if(rows.length>=3){
+    const numCols=cols.filter(c=>c.hi==="max");
+    const tally={}; rows.forEach(r=> tally[r.label]={top:0,mid:0,last:0});
+    numCols.forEach(c=>{ const ranked=rows.slice().filter(r=>(c.get(r)||0)>0).sort((a,b)=>(c.get(b)||0)-(c.get(a)||0)); const n=ranked.length; ranked.forEach((r,i)=>{ if(i===0) tally[r.label].top++; else if(i===n-1) tally[r.label].last++; else tally[r.label].mid++; }); });
+    const pick=(key,exclude)=>{ let best=null; rows.forEach(r=>{ if(exclude.indexOf(r.label)>=0) return; if(best===null||tally[r.label][key]>tally[best][key]) best=r.label; }); return best; };
+    const bestP=pick("top",[]); const midP=pick("mid",[bestP]); const lastP=pick("last",[bestP,midP].filter(Boolean));
+    const pods=[ {t:"🏆 Best Guardian", who:bestP, key:"top", first:true},
+      {t:"🥈 Most Mid", who:midP, key:"mid"},
+      {t:"🥉 Participation Trophy", who:lastP, key:"last"} ];
+    podHtml=`<div class="cmp-podium">`+pods.map(p=>{ const t=p.who&&tally[p.who]?tally[p.who][p.key]:0; const lbl=p.key==="top"?("category win"+(t!==1?"s":"")):p.key==="mid"?("mid finish"+(t!==1?"es":"")):("last place"+(t!==1?"s":"")); return `<div class="pod${p.first?" first":""}"><div class="pt">${p.t}</div><div class="pw">${p.who?escapeHtml(p.who):"—"}</div><div class="ps">${t} ${lbl}</div></div>`; }).join("")+`</div>`;
+  }
+
+  let html=podHtml+`<div class="cmp-table-wrap"><table class="cmp"><thead><tr><th class="name">Player</th>`;
   cols.forEach(c=>{ const arrow=CMP_SORT.key===c.id?(CMP_SORT.dir<0?" ▼":" ▲"):""; html+=`<th data-col="${c.id}">${c.t}<span class="arr">${arrow}</span></th>`; });
   html+=`</tr></thead><tbody>`;
   rows.forEach(r=>{ html+=`<tr><td class="name"><a data-label="${escapeHtml(r.label)}">${escapeHtml(r.label)}</a></td>`;
@@ -714,7 +801,7 @@ function renderCompare(){
 function renderFullBreakdowns(){
   const full=$("#cmpFull"); if(!full) return; full.innerHTML="";
   full.appendChild(el("div","section-title","Full Breakdown — each player"));
-  CMP_ROWS.forEach(r=>{ const block=el("div","player-track"); full.appendChild(block); renderTrack(block, r.member, r.profile, r.stats); });
+  CMP_ROWS.forEach(r=>{ const block=el("div","player-track"); full.appendChild(block); renderTrack(block, r.member, r.profile, r.stats, { memberships:r.memberships, filter:"all", datas:r.histDatas }); });
 }
 async function runCompare(){
   if(CMP_PLAYERS.length<2){ setStatus("&#9888; Add at least 2 players.",true,"#cmpStatus"); return; }
@@ -727,7 +814,7 @@ async function runCompare(){
 async function runDetailedCompare(){
   const btn=$("#cmpDetailBtn"); if(btn){ btn.textContent="Loading histories…"; btn.disabled=true; }
   for(let i=0;i<CMP_ROWS.length;i++){ const r=CMP_ROWS[i]; setStatus(`<span class="spinner"></span> Activity history for ${escapeHtml(r.label)} (${i+1}/${CMP_ROWS.length}) …`,false,"#cmpStatus");
-    try{ const hist=await fetchHistory(r.member.membershipType, r.member.membershipId, r.charIds, ()=>{}); const st=computeStreaks(hist.days); r.longestStreak=st?st.longestActive:0; r.longestSession=hist.maxSession; r.bestSeason=mostPlayed(hist.days,SEASONS); }
+    try{ const hists=await Promise.all((r.histDatas||[]).map(d=> fetchHistory(d.m.membershipType, d.m.membershipId, d.charIds, ()=>{}))); const hist=mergeHistories(hists); const st=computeStreaks(hist.days); r.longestStreak=st?st.longestActive:0; r.longestSession=hist.maxSession; r.bestSeason=mostPlayed(hist.days,SEASONS); }
     catch(e){ r.longestStreak=0; r.longestSession=0; r.bestSeason=null; } }
   setStatus("",false,"#cmpStatus"); CMP_DETAILED=true; renderCompare();
 }
