@@ -273,6 +273,19 @@
 
   table.cmp td.rank { font-size:13.5px; }
   table.cmp td.rank .rk { font-size:21px; line-height:1; }
+
+  .inv-item[draggable=true] { cursor:grab; }
+  .cat-col.drop-hover, .inv-colhead.drop-hover { outline:2px dashed var(--gold); outline-offset:-2px; background:rgba(245,212,154,0.07); border-radius:6px; }
+  .ip-actions { padding:11px 14px; border-top:1px solid #2a2b2f; display:flex; flex-direction:column; gap:9px; }
+  .ip-act-row { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .ip-act-lbl { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); width:60px; flex:none; }
+  .ip-cbtn { width:36px; height:36px; border-radius:6px; border:1px solid var(--line); background:#0c0d0f; cursor:pointer; overflow:hidden; padding:0; display:grid; place-items:center; color:var(--muted); font-size:16px; }
+  .ip-cbtn img { width:100%; height:100%; object-fit:cover; }
+  .ip-cbtn:hover { border-color:var(--gold); }
+  .ip-cbtn:disabled { opacity:0.4; cursor:default; }
+  .ip-cbtn.vbtn { color:var(--accent); }
+  .inv-toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:80; background:#16171a; border:1px solid var(--line); border-radius:10px; padding:10px 16px; font-size:13.5px; box-shadow:0 12px 40px rgba(0,0,0,0.6); max-width:90vw; }
+  .inv-toast.ok { border-color:var(--good); color:var(--good); } .inv-toast.err { border-color:var(--bad); color:var(--bad); }
 </style>
 </head>
 <body>
@@ -1058,13 +1071,31 @@ async function loadInventory(){
   if(!type) throw new Error("Please sign out and sign in again to enable inventory.");
   return bungie(`/Destiny2/${type}/Profile/${id}/?components=100,102,200,201,205,300,304,305`,{ headers:authHeaders() });
 }
+async function transferItem(hash, itemId, charId, toVault, quantity){
+  return bungie("/Destiny2/Actions/Items/TransferItem/", { method:"POST", headers:authHeaders({"Content-Type":"application/json"}), body:JSON.stringify({ itemReferenceHash:Number(hash), stackSize:Number(quantity)||1, transferToVault:!!toVault, itemId:String(itemId), characterId:String(charId), membershipType:Number(getMyMembershipType()) }) });
+}
+async function equipItemApi(itemId, charId){
+  return bungie("/Destiny2/Actions/Items/EquipItem/", { method:"POST", headers:authHeaders({"Content-Type":"application/json"}), body:JSON.stringify({ itemId:String(itemId), characterId:String(charId), membershipType:Number(getMyMembershipType()) }) });
+}
+async function moveItem(o){
+  if(!o.iid) throw new Error("This item can't be moved individually yet.");
+  if(o.equipped) throw new Error("That item is equipped — equip a different one first, then move it.");
+  const q=o.quantity||1;
+  if(o.target==="vault"){ if(o.owner==="vault") return; await transferItem(o.hash,o.iid,o.owner,true,q); return; }
+  if(o.owner!==o.target){
+    if(o.owner==="vault"){ await transferItem(o.hash,o.iid,o.target,false,q); }
+    else { await transferItem(o.hash,o.iid,o.owner,true,q); await transferItem(o.hash,o.iid,o.target,false,q); }
+  }
+  if(o.equip) await equipItemApi(o.iid,o.target);
+}
+function invToast(msg, ok, err){ let t=document.getElementById("inv-toast"); if(!t){ t=el("div"); t.id="inv-toast"; document.body.appendChild(t); } t.className="inv-toast"+(ok?" ok":"")+(err?" err":""); t.innerHTML=(ok?"&#10003; ":err?"&#9888; ":'<span class="spinner"></span> ')+escapeHtml(String(msg)); clearTimeout(INV.toastT); if(ok||err) INV.toastT=setTimeout(()=>{ const e=document.getElementById("inv-toast"); if(e) e.remove(); }, 2800); }
 function catOf(d){ return (d&&ITEMTYPE_CAT[d.it])||"Other"; }
 function itemHtml(it, defs, instances){
   const d=defs[it.itemHash]; if(!d) return "";
   const inst=it.itemInstanceId&&instances[it.itemInstanceId];
   const power=inst&&inst.primaryStat?inst.primaryStat.value:0;
   const dt=inst&&inst.damageType; const dmgIc=dt&&INV.dmgIcons&&INV.dmgIcons[dt];
-  return `<div class="inv-item ${TIER_CLASS[d.t]||"t-common"}${it.equipped?" eq":""}" data-hash="${it.itemHash}" data-iid="${it.itemInstanceId||""}" data-name="${escapeHtml((d.n||"").toLowerCase())}" title="${escapeHtml(d.n)}${power?" · "+power:""}${it.equipped?" (equipped)":""}">${d.ic?`<img src="${BASE+d.ic}" loading="lazy"/>`:""}${dmgIc?`<span class="elem"><img src="${BASE+dmgIc}"/></span>`:""}${power?`<span class="pw">${power}</span>`:""}${it.quantity>1?`<span class="qty">${it.quantity}</span>`:""}</div>`;
+  return `<div class="inv-item ${TIER_CLASS[d.t]||"t-common"}${it.equipped?" eq":""}"${it.itemInstanceId?' draggable="true"':''} data-hash="${it.itemHash}" data-iid="${it.itemInstanceId||""}" data-name="${escapeHtml((d.n||"").toLowerCase())}" title="${escapeHtml(d.n)}${power?" · "+power:""}${it.equipped?" (equipped)":""}">${d.ic?`<img src="${BASE+d.ic}" loading="lazy"/>`:""}${dmgIc?`<span class="elem"><img src="${BASE+dmgIc}"/></span>`:""}${power?`<span class="pw">${power}</span>`:""}${it.quantity>1?`<span class="qty">${it.quantity}</span>`:""}</div>`;
 }
 const ELEMENTS = { 1:"Kinetic", 2:"Arc", 3:"Solar", 4:"Void", 6:"Stasis", 7:"Strand" };
 function invElement(it){ const inst=INV.ctx.instances[it.itemInstanceId]; return (inst&&inst.damageType)||0; }
@@ -1082,7 +1113,7 @@ function invFilterSort(items, cat, sub){ const e=invEff(cat,sub); let out=items.
   if(e.element!=="all") out=out.filter(it=> String(invElement(it))===String(e.element));
   if(e.type!=="all") out=out.filter(it=> invType(it)===e.type);
   out.sort(invSorter(e.sort)); return out; }
-function invColsRow(arr){ const ctx=INV.ctx; return `<div class="cat-cols">`+arr.map(items=>`<div class="cat-col">`+items.map(it=> itemHtml(it,ctx.defs,ctx.instances)).join("")+`</div>`).join("")+`</div>`; }
+function invColsRow(arr){ const ctx=INV.ctx; return `<div class="cat-cols">`+arr.map((items,i)=>`<div class="cat-col" data-owner="${(ctx.cols&&ctx.cols[i]&&ctx.cols[i].key)||""}">`+items.map(it=> itemHtml(it,ctx.defs,ctx.instances)).join("")+`</div>`).join("")+`</div>`; }
 function invSelect(key,k,cur,opts){ return `<select class="inv-ctrl" data-key="${escapeHtml(key)}" data-k="${k}">`+opts.map(o=>`<option value="${escapeHtml(String(o[0]))}"${String(cur)===String(o[0])?" selected":""}>${escapeHtml(o[1])}</option>`).join("")+`</select>`; }
 function invSubControls(cat, sub, union){ const key=cat+"||"+sub, f=INV.filters[key]||{};
   const els=[["all","Element: All"]].concat([...new Set(union.map(invElement).filter(e=>ELEMENTS[e]))].sort((a,b)=>a-b).map(e=>[String(e),ELEMENTS[e]]));
@@ -1119,6 +1150,9 @@ function bindInventory(host){
   const auto=$("#invAuto"); if(auto) auto.onchange=()=>{ INV.autoRefresh=auto.checked; startInvPoll(); };
   startInvPoll();
   const se=$("#invSearch"); if(se) se.oninput=()=>{ const q=se.value.toLowerCase(); host.querySelectorAll(".inv-item").forEach(it=>{ it.style.display=(!q||(it.dataset.name||"").indexOf(q)>=0)?"":"none"; }); host.querySelectorAll(".inv-cat").forEach(c=>{ if(q) c.classList.add("open"); }); };
+  // drag & drop move
+  host.querySelectorAll(".inv-item[draggable=true]").forEach(it=> it.ondragstart=(e)=>{ const col=it.closest(".cat-col"); INV.drag={ hash:it.dataset.hash, iid:it.dataset.iid, owner:col?col.dataset.owner:null, equipped:it.classList.contains("eq"), quantity:1 }; try{ e.dataTransfer.setData("text/plain", it.dataset.iid||""); e.dataTransfer.effectAllowed="move"; }catch(x){} });
+  host.querySelectorAll("[data-owner]").forEach(z=>{ z.ondragover=(e)=>{ if(INV.drag){ e.preventDefault(); z.classList.add("drop-hover"); } }; z.ondragleave=()=> z.classList.remove("drop-hover"); z.ondrop=async(e)=>{ e.preventDefault(); z.classList.remove("drop-hover"); const dd=INV.drag; INV.drag=null; if(!dd||!dd.iid) return; const target=z.dataset.owner; if(!target||target===dd.owner) return; invToast("Moving…"); try{ await moveItem({ hash:dd.hash, iid:dd.iid, owner:dd.owner, equipped:dd.equipped, target, equip:false, quantity:dd.quantity }); invToast("Moved", true); refreshInventory(); }catch(err){ invToast(err.message||"Move failed", false, true); } }; });
 }
 function renderInventory(host, profile){
   const defs=INV.defs; INV.profile=profile;
@@ -1137,10 +1171,10 @@ function renderInventory(host, profile){
   let totalItems=colData.reduce((a,cd)=>a+cd.items.length,0);
   let h=`<div class="inv-controls"><input id="invSearch" placeholder="Search ${totalItems} items…" autocomplete="off"/><label class="auto-ref"><input type="checkbox" id="invAuto" ${INV.autoRefresh!==false?"checked":""}/> Live</label><button class="btn sm" id="invReload">Reload now</button><span class="inv-note" id="invStamp"></span></div>`;
   h+=`<div class="inv-grid" style="--cols:${cols.length}"><div class="inv-headrow">`;
-  cols.forEach(c=>{ if(c.kind==="vault"){ h+=`<div class="inv-colhead vault"><div class="ch-name">Vault</div><div class="ch-sub">${vaultItems.length} items</div></div>`; }
-    else { const ch=chars[c.key]||{}; h+=`<div class="inv-colhead"><div class="ch-name" style="color:${CLASS_COLOR[ch.classType]||"var(--text)"}">${CLASS_NAMES[ch.classType]||"Guardian"}</div><div class="ch-sub">&#9733; ${ch.light||0}</div></div>`; } });
+  cols.forEach(c=>{ if(c.kind==="vault"){ h+=`<div class="inv-colhead vault" data-owner="vault"><div class="ch-name">Vault</div><div class="ch-sub">${vaultItems.length} items</div></div>`; }
+    else { const ch=chars[c.key]||{}; h+=`<div class="inv-colhead" data-owner="${c.key}"><div class="ch-name" style="color:${CLASS_COLOR[ch.classType]||"var(--text)"}">${CLASS_NAMES[ch.classType]||"Guardian"}</div><div class="ch-sub">&#9733; ${ch.light||0}</div></div>`; } });
   h+=`</div>`;
-  INV.ctx={ defs, instances, colData }; INV.filters=INV.filters||{};
+  INV.ctx={ defs, instances, colData, cols }; INV.filters=INV.filters||{};
   CAT_ORDER.forEach(cat=>{
     const inCat=colData.map(cd=> cd.items.filter(it=>{ const d=defs[it.itemHash]; return d && catOf(d)===cat; }));
     const count=inCat.reduce((a,b)=>a+b.length,0); if(!count) return;
@@ -1192,10 +1226,29 @@ function showItemPopup(hash, iid, anchor){
   const perks=sockets.filter(so=> so && so.plugHash && so.isVisible!==false).map(so=>({ph:so.plugHash, d:INV.defs[so.plugHash]})).filter(x=> x.d && x.d.n);
   const perksHtml = perks.length ? `<div class="ip-perks-wrap"><div class="ip-sec-label">Perks &amp; Mods</div><div class="ip-perks">`+perks.map(x=> x.d.ic?`<div class="ip-perk" data-ph="${x.ph}" data-pn="${escapeHtml(x.d.n)}"><img src="${BASE+x.d.ic}" loading="lazy"/></div>`:`<div class="ip-perk txt" data-ph="${x.ph}" data-pn="${escapeHtml(x.d.n)}">${escapeHtml(x.d.n)}</div>`).join("")+`</div></div>` : "";
   const pop=el("div","item-pop");
-  pop.innerHTML=`<div class="ip-head ${tc}"><div class="ip-titles"><div class="ip-name">${escapeHtml(d.n)}</div><div class="ip-type">${tierName} ${escapeHtml(d.tn||"")}</div></div>${power?`<div class="ip-power">${power}<small>POWER</small></div>`:""}</div>`+statsHtml+perksHtml+`<div class="ip-foot">Move &amp; equip coming next &middot; click away to close</div>`;
+  const owner = (anchor && anchor.closest && anchor.closest(".cat-col")) ? anchor.closest(".cat-col").dataset.owner : null;
+  const equipped = !!(anchor && anchor.classList && anchor.classList.contains("eq"));
+  let actionsHtml="";
+  if(iid && getToken() && prof.characters){
+    const chars=(prof.characters&&prof.characters.data)||{};
+    const charIds=(prof.profile&&prof.profile.data&&prof.profile.data.characterIds)||Object.keys(chars);
+    const cbtn=(cid,act)=>{ const ch=chars[cid]||{}; return `<button class="ip-cbtn" data-act="${act}" data-target="${cid}" title="${escapeHtml((CLASS_NAMES[ch.classType]||"")+" \u2605"+(ch.light||""))}">${ch.emblemPath?`<img src="${BASE+ch.emblemPath}"/>`:(CLASS_NAMES[ch.classType]||"?")}</button>`; };
+    let eqRow=""; if(d.eq){ const ts=charIds.filter(cid=> !(equipped && cid===owner)); if(ts.length) eqRow=`<div class="ip-act-row"><span class="ip-act-lbl">Equip on</span>`+ts.map(cid=>cbtn(cid,"equip")).join("")+`</div>`; }
+    const pts=charIds.filter(cid=> cid!==owner);
+    const pullRow=`<div class="ip-act-row"><span class="ip-act-lbl">Pull to</span>`+pts.map(cid=>cbtn(cid,"move")).join("")+(owner!=="vault"?`<button class="ip-cbtn vbtn" data-act="move" data-target="vault" title="Vault">&#9638;</button>`:"")+`</div>`;
+    actionsHtml=`<div class="ip-actions">`+eqRow+pullRow+`</div>`;
+  }
+  pop.innerHTML=`<div class="ip-head ${tc}"><div class="ip-titles"><div class="ip-name">${escapeHtml(d.n)}</div><div class="ip-type">${tierName} ${escapeHtml(d.tn||"")}</div></div>${power?`<div class="ip-power">${power}<small>POWER</small></div>`:""}</div>`+statsHtml+perksHtml+actionsHtml+`<div class="ip-foot">${iid?"Tap an icon to move/equip &middot; ":""}click away to close</div>`;
   document.body.appendChild(pop);
   positionPopup(pop, anchor);
   pop.querySelectorAll(".ip-perk").forEach(pe=>{ pe.onmouseenter=()=> showPerkTip(pe); pe.onmouseleave=()=> hidePerkTip(); });
+  pop.querySelectorAll(".ip-cbtn").forEach(btn=> btn.onclick=async()=>{
+    const target=btn.dataset.target, equip=btn.dataset.act==="equip";
+    pop.querySelectorAll(".ip-cbtn").forEach(b=> b.disabled=true);
+    closeItemPopup(); invToast("Moving "+(d.n||"item")+"…");
+    try{ await moveItem({ hash, iid, owner, equipped, target, equip, quantity:1 }); invToast((equip?"Equipped ":"Moved ")+(d.n||"item"), true); refreshInventory(); }
+    catch(e){ invToast(e.message||"Move failed", false, true); }
+  });
   setTimeout(()=>{ document.addEventListener("mousedown", outsideClosePop, true); document.addEventListener("keydown", escClosePop, true); }, 0);
 }
 function stopInvPoll(){ if(INV.pollTimer){ clearInterval(INV.pollTimer); INV.pollTimer=null; } }
