@@ -6,110 +6,92 @@
 <title>Guardian Clock — Destiny 2 Playtime Tracker</title>
 <style>
   :root {
-    --bg: #0a0e14;
-    --bg2: #11161f;
-    --panel: #161c27;
-    --panel2: #1d2531;
-    --line: #2a3340;
-    --text: #e8ecf2;
-    --muted: #8a97a8;
-    --gold: #f5d49a;
-    --gold2: #c8a24e;
-    --accent: #5ea0ff;
-    --titan: #d14b3c;
-    --hunter: #4a90c4;
-    --warlock: #e8b84b;
-    --good: #6fcf97;
-    --bad: #e57373;
+    --bg: #0a0e14; --bg2: #11161f; --panel: #161c27; --panel2: #1d2531;
+    --line: #2a3340; --text: #e8ecf2; --muted: #8a97a8;
+    --gold: #f5d49a; --gold2: #c8a24e; --accent: #5ea0ff;
+    --titan: #d14b3c; --hunter: #4a90c4; --warlock: #e8b84b;
+    --good: #6fcf97; --bad: #e57373;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    background:
-      radial-gradient(1200px 600px at 50% -200px, #1a2230 0%, rgba(26,34,48,0) 60%),
-      var(--bg);
-    color: var(--text);
-    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    min-height: 100vh;
-    line-height: 1.5;
+    background: radial-gradient(1200px 600px at 50% -200px, #1a2230 0%, rgba(26,34,48,0) 60%), var(--bg);
+    color: var(--text); font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; min-height: 100vh; line-height: 1.5;
   }
   a { color: var(--accent); }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 80px; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px; }
 
-  /* Header */
-  header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
   .brand { display: flex; align-items: center; gap: 14px; }
-  .brand .glyph {
-    width: 42px; height: 42px; flex: none;
-    display: grid; place-items: center;
-    border: 1px solid var(--gold2);
-    color: var(--gold);
-    transform: rotate(45deg);
-    border-radius: 6px;
-    background: linear-gradient(135deg, #1d2531, #11161f);
-    box-shadow: 0 0 24px rgba(245,212,154,0.12);
-  }
+  .brand .glyph { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border: 1px solid var(--gold2); color: var(--gold); transform: rotate(45deg); border-radius: 6px; background: linear-gradient(135deg, #1d2531, #11161f); box-shadow: 0 0 24px rgba(245,212,154,0.12); }
   .brand .glyph span { transform: rotate(-45deg); font-weight: 700; font-size: 20px; }
   .brand h1 { font-size: 20px; margin: 0; letter-spacing: 0.5px; }
   .brand p { margin: 0; color: var(--muted); font-size: 12.5px; letter-spacing: 0.4px; }
 
-  .btn {
-    cursor: pointer; border: 1px solid var(--line); background: var(--panel2); color: var(--text);
-    padding: 9px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600; letter-spacing: 0.3px;
-    transition: 0.15s; display: inline-flex; align-items: center; gap: 8px;
-  }
+  .btn { cursor: pointer; border: 1px solid var(--line); background: var(--panel2); color: var(--text); padding: 9px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600; letter-spacing: 0.3px; transition: 0.15s; display: inline-flex; align-items: center; gap: 8px; }
   .btn:hover { border-color: var(--gold2); color: var(--gold); }
   .btn.gold { background: linear-gradient(180deg, #d8b463, #b88f3e); border-color: #d8b463; color: #1a130a; }
   .btn.gold:hover { filter: brightness(1.08); color: #1a130a; }
   .btn.ghost { background: transparent; }
+  .btn.sm { padding: 6px 11px; font-size: 12.5px; }
 
-  /* Search */
-  .search-card {
-    background: linear-gradient(180deg, var(--panel), var(--bg2));
-    border: 1px solid var(--line); border-radius: 14px; padding: 22px; margin-bottom: 24px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-  }
+  .tabs { display: inline-flex; background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 4px; gap: 4px; margin-bottom: 22px; }
+  .tabs button { background: transparent; border: 0; color: var(--muted); padding: 8px 18px; border-radius: 7px; cursor: pointer; font-size: 13.5px; font-weight: 600; }
+  .tabs button.active { background: var(--panel2); color: var(--gold); }
+
+  .search-card { background: linear-gradient(180deg, var(--panel), var(--bg2)); border: 1px solid var(--line); border-radius: 14px; padding: 22px; margin-bottom: 24px; box-shadow: 0 12px 40px rgba(0,0,0,0.35); position: relative; }
   .search-row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .search-row input {
-    flex: 1; min-width: 240px; background: #0c1119; border: 1px solid var(--line); color: var(--text);
-    padding: 13px 15px; border-radius: 10px; font-size: 15px; outline: none;
-  }
+  .input-wrap { flex: 1; min-width: 240px; position: relative; }
+  .search-row input { width: 100%; background: #0c1119; border: 1px solid var(--line); color: var(--text); padding: 13px 15px; border-radius: 10px; font-size: 15px; outline: none; }
   .search-row input:focus { border-color: var(--gold2); box-shadow: 0 0 0 3px rgba(245,212,154,0.08); }
   .hint { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
-  .examples { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip { cursor: pointer; font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 999px; }
+  .examples { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .chip { cursor: pointer; font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; }
   .chip:hover { color: var(--gold); border-color: var(--gold2); }
+  .chip .x { opacity: 0.5; font-weight: 700; }
+  .chip .x:hover { opacity: 1; color: var(--bad); }
+  .chip-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: 2px; }
 
-  /* status */
+  .recent-pop { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: none; box-shadow: 0 14px 40px rgba(0,0,0,0.5); }
+  .recent-pop.open { display: block; }
+  .recent-pop .ritem { padding: 10px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .recent-pop .ritem:hover { background: var(--panel); color: var(--gold); }
+  .recent-pop .ritem small { color: var(--muted); }
+  .recent-pop .rhead { padding: 8px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); border-bottom: 1px solid var(--line); }
+
   #status { margin: 16px 0; min-height: 22px; font-size: 14px; }
   .err { color: var(--bad); }
   .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -3px; margin-right: 8px; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .progress { height: 6px; border-radius: 4px; background: #0c1119; overflow: hidden; margin-top: 8px; max-width: 320px; }
+  .progress > div { height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold)); width: 0%; transition: width 0.2s; }
 
-  /* Results */
-  #results { display: none; }
-  .guardian-head {
-    position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 14px;
-    background: var(--panel); margin-bottom: 22px; min-height: 96px;
-    display: flex; align-items: center; gap: 18px; padding: 18px 22px;
-  }
+  #results, #compareView { display: none; }
+  .guardian-head { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); margin-bottom: 18px; min-height: 96px; display: flex; align-items: center; gap: 18px; padding: 18px 22px; }
   .guardian-head .bgimg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.22; }
   .guardian-head .info { position: relative; z-index: 1; }
   .guardian-head h2 { margin: 0; font-size: 24px; letter-spacing: 0.4px; }
   .guardian-head .tag { color: var(--gold); font-weight: 600; }
   .guardian-head .sub { color: var(--muted); font-size: 13px; margin-top: 3px; }
   .platform-pill { display: inline-block; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; margin-left: 8px; vertical-align: 2px; }
+  .me-badge { font-size: 11px; background: var(--gold2); color: #1a130a; border-radius: 5px; padding: 2px 7px; font-weight: 700; letter-spacing: 0.4px; }
 
-  .hero-stat { text-align: center; padding: 30px 16px; background: linear-gradient(180deg, var(--panel2), var(--bg2)); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 22px; }
-  .hero-stat .label { color: var(--muted); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
-  .hero-stat .big { font-size: clamp(38px, 7vw, 64px); font-weight: 800; color: var(--gold); line-height: 1.05; margin: 6px 0; text-shadow: 0 0 36px rgba(245,212,154,0.18); }
-  .hero-stat .alt { color: var(--muted); font-size: 14px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 22px; }
+  .stat-tile { background: linear-gradient(180deg, var(--panel2), var(--bg2)); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stat-tile .v { font-size: 24px; font-weight: 800; color: var(--gold); line-height: 1.1; }
+  .stat-tile .v.small { font-size: 19px; }
+  .stat-tile .l { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .stat-tile .x { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .stat-tile.hero { grid-column: 1 / -1; text-align: center; padding: 26px 16px; }
+  .stat-tile.hero .v { font-size: clamp(34px, 6vw, 56px); text-shadow: 0 0 36px rgba(245,212,154,0.18); }
 
   .grid { display: grid; gap: 16px; }
   .cards { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); margin-bottom: 22px; }
-
-  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin: 26px 0 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin: 26px 0 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .section-title .toggle { display: inline-flex; gap: 4px; }
+  .section-title .toggle button { background: var(--bg2); border: 1px solid var(--line); color: var(--muted); padding: 4px 11px; border-radius: 6px; cursor: pointer; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .section-title .toggle button.active { color: var(--gold); border-color: var(--gold2); }
 
   .char-card { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
   .char-card .emblem { height: 74px; background-size: cover; background-position: left center; display: flex; align-items: center; padding: 0 14px; gap: 12px; }
@@ -130,17 +112,43 @@
   .mode-card .m-time { font-size: 20px; font-weight: 700; margin-top: 4px; }
   .mode-card .m-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
+  .heat-legend { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+  .heat-legend .sw { width: 11px; height: 11px; border-radius: 2px; }
+  .season-wrap { display: flex; flex-wrap: wrap; gap: 18px 22px; }
+  .season-block .sb-title { font-size: 12.5px; font-weight: 600; }
+  .season-block .sb-time { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .year-block { margin-bottom: 20px; }
+  .year-block .yb-title { font-size: 14px; font-weight: 700; color: var(--gold); margin-bottom: 6px; }
+  .heatgrid { display: grid; grid-auto-flow: column; gap: 2px; }
+  .hcell { width: 100%; height: 100%; background: #1a2230; border-radius: 2px; }
+  .hcell.empty-pad { background: transparent; }
+  .heat-scroll { overflow-x: auto; padding-bottom: 6px; }
+
   .fun { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
   .fun-card { border: 1px dashed var(--line); border-radius: 12px; background: rgba(255,255,255,0.015); padding: 14px 16px; }
   .fun-card .n { font-size: 22px; font-weight: 800; color: var(--gold); }
   .fun-card .t { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  .cmp-add { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .cmp-add input { flex: 1; min-width: 220px; background: #0c1119; border: 1px solid var(--line); color: var(--text); padding: 12px 14px; border-radius: 10px; font-size: 15px; outline: none; }
+  .cmp-players { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .cmp-table-wrap { overflow-x: auto; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 4px; }
+  table.cmp th, table.cmp td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table.cmp th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+  table.cmp td.name, table.cmp th.name { text-align: left; font-weight: 700; position: sticky; left: 0; background: var(--bg); }
+  table.cmp td.best { color: var(--gold); font-weight: 700; }
+  table.cmp tr:hover td { background: rgba(255,255,255,0.02); }
+  .cmp-bars { margin-top: 22px; }
+  .cmp-bar-row { display: grid; grid-template-columns: 160px 1fr auto; gap: 12px; align-items: center; margin-bottom: 8px; font-size: 13px; }
+  .cmp-bar-row .bt { height: 20px; background: #0c1119; border-radius: 5px; overflow: hidden; }
+  .cmp-bar-row .bf { height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold)); }
 
   footer { margin-top: 50px; color: var(--muted); font-size: 12px; text-align: center; }
   details.setup { margin-top: 28px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 6px 16px; }
   details.setup summary { cursor: pointer; font-weight: 600; padding: 10px 0; color: var(--gold); }
   details.setup code { background: #0c1119; padding: 1px 6px; border-radius: 4px; color: var(--gold); }
   details.setup ol { line-height: 1.7; }
-  .me-badge { font-size: 11px; background: var(--gold2); color: #1a130a; border-radius: 5px; padding: 2px 7px; font-weight: 700; letter-spacing: 0.4px; }
 </style>
 </head>
 <body>
@@ -149,59 +157,72 @@
   <header class="top">
     <div class="brand">
       <div class="glyph"><span>&#9671;</span></div>
-      <div>
-        <h1>GUARDIAN CLOCK</h1>
-        <p>Destiny 2 time-played tracker</p>
-      </div>
+      <div><h1>GUARDIAN CLOCK</h1><p>Destiny 2 time-played tracker</p></div>
     </div>
-    <div id="authArea">
-      <button class="btn" id="signInBtn">Sign in with Bungie</button>
-    </div>
+    <div id="authArea"><button class="btn" id="signInBtn">Sign in with Bungie</button></div>
   </header>
 
-  <div class="search-card">
-    <div class="search-row">
-      <input id="nameInput" type="text" placeholder="Bungie Name  —  e.g.  Guardian#1234" autocomplete="off" />
-      <button class="btn gold" id="searchBtn">Track Playtime</button>
-    </div>
-    <div class="hint">Enter any player's Bungie Name (the name + 4-digit code shown in-game). Their Destiny stats must be public.</div>
-    <div class="examples" id="examples">
-      <span class="chip" data-name="Cozmo#1648">Cozmo#1648</span>
-      <span class="chip" data-name="dmg04#1968">dmg04#1968</span>
-    </div>
+  <div class="tabs">
+    <button id="tabTrack" class="active">Track</button>
+    <button id="tabCompare">Compare</button>
   </div>
 
-  <div id="status"></div>
+  <!-- ======================= TRACK VIEW ======================= -->
+  <div id="trackView">
+    <div class="search-card">
+      <div class="search-row">
+        <div class="input-wrap">
+          <input id="nameInput" type="text" placeholder="Bungie Name  —  e.g.  Guardian#1234" autocomplete="off" />
+          <div class="recent-pop" id="recentPop"></div>
+        </div>
+        <button class="btn gold" id="searchBtn">Track Playtime</button>
+      </div>
+      <div class="hint">Enter any player's Bungie Name (the name + 4-digit code shown in-game). Their Destiny stats must be public.</div>
+      <div class="examples" id="examples"></div>
+    </div>
 
-  <div id="results"></div>
+    <div id="status"></div>
+    <div id="results"></div>
+  </div>
+
+  <!-- ======================= COMPARE VIEW ======================= -->
+  <div id="compareView">
+    <div class="search-card">
+      <div class="cmp-add">
+        <input id="cmpInput" type="text" placeholder="Add a Bungie Name  —  e.g.  Guardian#1234" autocomplete="off" />
+        <button class="btn" id="cmpAddBtn">+ Add</button>
+        <button class="btn gold" id="cmpRunBtn">Compare</button>
+      </div>
+      <div class="hint">Add up to 6 players, then Compare. Fast stats load first; use “Detailed” for streaks (slower).</div>
+      <div class="cmp-players" id="cmpPlayers"></div>
+    </div>
+    <div id="cmpStatus"></div>
+    <div id="cmpResults"></div>
+  </div>
 
   <details class="setup">
     <summary>First-time setup &amp; how to host this for friends</summary>
     <ol>
-      <li><b>API key &amp; CORS (required to search):</b> In the <a href="https://www.bungie.net/en/Application" target="_blank">Bungie app portal</a>, open your app (ID 47366) and set <b>Origin Header</b> to <code>*</code>. This lets the tool call the API from a browser.</li>
-      <li><b>To run locally:</b> just double-click <code>index.html</code>. Searching other players works immediately.</li>
-      <li><b>To enable "Sign in with Bungie" + share it:</b> host the file (GitHub Pages is free). Then in the Bungie portal set <b>OAuth Client Type = Public</b> and <b>Redirect URL</b> to your hosted page URL (e.g. <code>https://yourname.github.io/guardian-clock/</code>). See the included <code>README.md</code> for step-by-step hosting.</li>
+      <li><b>API key &amp; CORS (required to search):</b> In the <a href="https://www.bungie.net/en/Application" target="_blank">Bungie app portal</a>, open your app and set <b>Origin Header</b> to <code>*</code> (or your hosted origin, scheme+host only). This lets the tool call the API from a browser.</li>
+      <li><b>Run locally:</b> double-click <code>index.html</code>. Searching other players works immediately.</li>
+      <li><b>Sign-in + sharing:</b> host the file (GitHub Pages, free). Set <b>OAuth Client Type = Public</b> and <b>Redirect URL</b> to your hosted page URL. See <code>README.md</code>.</li>
     </ol>
   </details>
 
   <footer>
-    Not affiliated with Bungie. Data from the official Bungie.net API. &middot; Time played = seconds spent in activities (excludes orbit/social spaces).
+    Not affiliated with Bungie. Data from the official Bungie.net API. &middot; Activity time excludes orbit/social spaces; “in Destiny” estimates session length including time between activities.
   </footer>
 </div>
 
 <script>
 /* =========================================================================
-   GUARDIAN CLOCK — Destiny 2 playtime tracker
-   Single-file, pure client-side. Talks directly to the Bungie.net API.
-   Extend freely: see the "EXTEND HERE" markers.
+   GUARDIAN CLOCK — Destiny 2 playtime tracker (single file, client-side)
    ========================================================================= */
-
 const API_KEY   = "420221e617684fa8be878017345ee816";
 const CLIENT_ID = "47366";
 const BASE      = "https://www.bungie.net";
 const API       = BASE + "/Platform";
 
-// --- helpers ---------------------------------------------------------------
 const $  = (s) => document.querySelector(s);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 
@@ -209,326 +230,582 @@ const CLASS_NAMES = { 0: "Titan", 1: "Hunter", 2: "Warlock", 3: "Guardian" };
 const CLASS_COLOR = { 0: "var(--titan)", 1: "var(--hunter)", 2: "var(--warlock)", 3: "var(--gold)" };
 const PLATFORMS   = { 1: "Xbox", 2: "PlayStation", 3: "Steam", 4: "Battle.net", 5: "Stadia", 6: "Epic", 10: "Demon", 254: "BungieNext" };
 
+// Destiny 2 season boundaries (start dates; each season ends when the next begins).
+// Easy to extend: add new {n, d} rows in chronological order.
+const SEASONS = [
+  { n: "The Red War",            d: "2017-09-06" },
+  { n: "Curse of Osiris",        d: "2017-12-05" },
+  { n: "Warmind",                d: "2018-05-08" },
+  { n: "Season of the Outlaw",   d: "2018-09-04" },
+  { n: "Season of the Forge",    d: "2018-11-27" },
+  { n: "Season of the Drifter",  d: "2019-03-05" },
+  { n: "Season of Opulence",     d: "2019-06-04" },
+  { n: "Season of the Undying",  d: "2019-10-01" },
+  { n: "Season of Dawn",         d: "2019-12-10" },
+  { n: "Season of the Worthy",   d: "2020-03-10" },
+  { n: "Season of Arrivals",     d: "2020-06-09" },
+  { n: "Season of the Hunt",     d: "2020-11-10" },
+  { n: "Season of the Chosen",   d: "2021-02-09" },
+  { n: "Season of the Splicer",  d: "2021-05-11" },
+  { n: "Season of the Lost",     d: "2021-08-24" },
+  { n: "Season of the Risen",    d: "2022-02-22" },
+  { n: "Season of the Haunted",  d: "2022-05-24" },
+  { n: "Season of Plunder",      d: "2022-08-23" },
+  { n: "Season of the Seraph",   d: "2022-12-06" },
+  { n: "Season of Defiance",     d: "2023-02-28" },
+  { n: "Season of the Deep",     d: "2023-05-23" },
+  { n: "Season of the Witch",    d: "2023-08-22" },
+  { n: "Season of the Wish",     d: "2023-11-28" },
+  { n: "Episode: Echoes",        d: "2024-06-04" },
+  { n: "Episode: Revenant",      d: "2024-10-08" },
+  { n: "Episode: Heresy",        d: "2025-02-04" },
+  { n: "Season: Reclamation",    d: "2025-07-15" },
+  { n: "Season: Lawless",        d: "2025-12-02" },
+];
+
+// ---- generic API wrapper --------------------------------------------------
 function authHeaders(extra) {
   const h = { "X-API-Key": API_KEY };
   const tok = getToken();
   if (tok) h["Authorization"] = "Bearer " + tok;
   return Object.assign(h, extra || {});
 }
-
-// Wrap every Bungie call: throws on ErrorCode != 1 with the human message.
 async function bungie(path, opts) {
   const res = await fetch(API + path, opts);
   let data;
   try { data = await res.json(); }
-  catch (e) { throw new Error("Network/CORS error. If running as a local file, make sure the app's Origin is set to * in the Bungie portal."); }
-  if (data.ErrorCode !== undefined && data.ErrorCode !== 1) {
-    throw new Error(data.Message || ("Bungie error " + data.ErrorCode));
-  }
+  catch (e) { throw new Error("Network/CORS error. Make sure the app's Origin Header is set to * (or your site's origin) in the Bungie portal."); }
+  if (data.ErrorCode !== undefined && data.ErrorCode !== 1) throw new Error(data.Message || ("Bungie error " + data.ErrorCode));
   return data.Response;
 }
 
+// ---- formatting helpers ---------------------------------------------------
 function fmtDuration(seconds) {
   seconds = Math.max(0, Math.floor(seconds || 0));
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const parts = [];
-  if (d) parts.push(d + "d");
-  if (h) parts.push(h + "h");
-  parts.push(m + "m");
+  const d = Math.floor(seconds / 86400), h = Math.floor((seconds % 86400) / 3600), m = Math.floor((seconds % 3600) / 60);
+  const parts = []; if (d) parts.push(d + "d"); if (h) parts.push(h + "h"); parts.push(m + "m");
   return parts.join(" ");
 }
+function fmtShort(seconds) { const h = (seconds||0)/3600; return h >= 100 ? Math.round(h) + "h" : h.toFixed(1) + "h"; }
 function commas(n) { return Math.round(n).toLocaleString(); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function timeAgo(dateStr){ if(!dateStr) return "unknown"; const diff=(Date.now()-new Date(dateStr))/1000;
+  if(diff<3600) return Math.floor(diff/60)+"m ago"; if(diff<86400) return Math.floor(diff/3600)+"h ago";
+  if(diff<2592000) return Math.floor(diff/86400)+"d ago"; return new Date(dateStr).toLocaleDateString(); }
+function dateKey(d){ const x=new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
+function midnight(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function weekStart(d){ const x=midnight(d); x.setDate(x.getDate()-x.getDay()); return x; }
+function todayMid(){ return midnight(new Date()); }
+function statVal(allTime, key){ return allTime && allTime[key] && allTime[key].basic ? allTime[key].basic.value : 0; }
 
-function setStatus(html, isErr) {
-  const s = $("#status");
-  s.className = isErr ? "err" : "";
-  s.innerHTML = html || "";
-}
+function setStatus(html, isErr, target){ const s=$(target||"#status"); s.className=isErr?"err":""; s.innerHTML=html||""; }
 
-// --- core lookup -----------------------------------------------------------
+// =========================================================================
+//  CORE LOOKUPS
+// =========================================================================
+function parseBungieName(raw){ const m=String(raw).trim().match(/^(.*)#(\d{1,5})$/); return m?{name:m[1].trim(),code:parseInt(m[2],10)}:null; }
 
-// Parse "Name#1234" into { name, code }.
-function parseBungieName(raw) {
-  const m = raw.trim().match(/^(.*)#(\d{1,5})$/);
-  if (!m) return null;
-  return { name: m[1].trim(), code: parseInt(m[2], 10) };
-}
-
-// Find the best Destiny membership for a Bungie name (cross-save aware).
-async function findMembership(raw) {
+async function findMembership(raw){
   const parsed = parseBungieName(raw);
-  if (!parsed) throw new Error('Please enter a name in the form  Name#1234');
+  if (!parsed) throw new Error('Enter a name as  Name#1234');
   const results = await bungie(`/Destiny2/SearchDestinyPlayerByBungieName/-1/`, {
-    method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
+    method:"POST", headers:authHeaders({"Content-Type":"application/json"}),
     body: JSON.stringify({ displayName: parsed.name, displayNameCode: parsed.code }),
   });
   if (!results || !results.length) throw new Error("No Destiny player found with that Bungie Name.");
-  // Prefer the cross-save primary membership if present.
   const primary = results.find(r => r.crossSaveOverride !== 0 && r.crossSaveOverride === r.membershipType);
   return primary || results[0];
 }
+async function getProfile(type, id){ return bungie(`/Destiny2/${type}/Profile/${id}/?components=100,200`, { headers: authHeaders() }); }
+async function getAccountStats(type, id){ return bungie(`/Destiny2/${type}/Account/${id}/Stats/`, { headers: authHeaders() }); }
 
-// GetProfile components 100 (profile) + 200 (characters).
-async function getProfile(membershipType, membershipId) {
-  return bungie(`/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,200`, {
-    headers: authHeaders(),
-  });
-}
+// ---- Activity history (paged) → daily map, cached incrementally -----------
+function loadJSON(k){ try { return JSON.parse(localStorage.getItem(k)||"null"); } catch(e){ return null; } }
+function saveJSON(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){ pruneHistCaches(); try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e2){} } }
+function pruneHistCaches(){ try{ const keys=Object.keys(localStorage).filter(k=>k.startsWith("gc_hist_")); keys.slice(0, Math.ceil(keys.length/2)).forEach(k=>localStorage.removeItem(k)); }catch(e){} }
 
-// GetHistoricalStatsForAccount — merged + per-character + per-mode.
-async function getAccountStats(membershipType, membershipId) {
-  return bungie(`/Destiny2/${membershipType}/Account/${membershipId}/Stats/`, {
-    headers: authHeaders(),
-  });
-}
-
-// Pull a stat value out of a DestinyHistoricalStatsByPeriod.allTime block.
-function statVal(allTime, key) {
-  return allTime && allTime[key] && allTime[key].basic ? allTime[key].basic.value : 0;
-}
-
-// --- render ----------------------------------------------------------------
-
-function render(member, profile, stats) {
-  const results = $("#results");
-  results.innerHTML = "";
-  results.style.display = "block";
-
-  const characters = (profile.characters && profile.characters.data) || {};
-  const charList = Object.values(characters).sort((a, b) =>
-    new Date(b.dateLastPlayed) - new Date(a.dateLastPlayed));
-  const userInfo = (profile.profile && profile.profile.data && profile.profile.data.userInfo) || member;
-
-  // Total seconds played: prefer merged historical stats, fall back to sum of character minutes.
-  const merged = stats && stats.mergedAllCharacters && stats.mergedAllCharacters.merged;
-  let totalSeconds = merged ? statVal(merged.allTime, "secondsPlayed") : 0;
-  if (!totalSeconds) {
-    totalSeconds = charList.reduce((s, c) => s + (parseInt(c.minutesPlayedTotal, 10) || 0) * 60, 0);
+async function fetchHistory(type, id, characterIds, onProgress){
+  const cacheKey = "gc_hist_v1_" + id;
+  const cache = loadJSON(cacheKey) || { days:{}, lastPeriod:null, totalActivities:0, sessionSec:0 };
+  const days = cache.days || {};
+  let newActs = [];
+  let pagesDone = 0;
+  for (const cid of characterIds){
+    let page = 0;
+    while (true){
+      let resp;
+      try { resp = await bungie(`/Destiny2/${type}/Account/${id}/Character/${cid}/Stats/Activities/?mode=0&count=250&page=${page}`, { headers: authHeaders() }); }
+      catch(e){ break; } // private or no data for this character
+      const acts = (resp && resp.activities) || [];
+      pagesDone++; if (onProgress) onProgress(pagesDone, newActs.length);
+      if (!acts.length) break;
+      let hitCache = false;
+      for (const a of acts){
+        if (cache.lastPeriod && a.period <= cache.lastPeriod){ hitCache = true; continue; }
+        const dur = a.values && a.values.activityDurationSeconds ? a.values.activityDurationSeconds.basic.value : 0;
+        newActs.push({ period: a.period, dur });
+      }
+      if (hitCache || acts.length < 250) break;
+      page++;
+    }
   }
+  // merge new activities into the daily map
+  let newestPeriod = cache.lastPeriod;
+  for (const a of newActs){
+    const k = dateKey(a.period);
+    const day = days[k] || { s:0, c:0 };
+    day.s += a.dur; day.c += 1; days[k] = day;
+    if (!newestPeriod || a.period > newestPeriod) newestPeriod = a.period;
+  }
+  // session estimate: group activities with <60min gaps; add new sessions' spans
+  let sessionSec = cache.sessionSec || 0;
+  if (newActs.length){
+    const sorted = newActs.slice().sort((x,y)=> new Date(x.period)-new Date(y.period));
+    let sStart=null, sEnd=null;
+    const GAP = 60*60*1000;
+    for (const a of sorted){
+      const start = new Date(a.period).getTime();
+      const end = start + (a.dur||0)*1000;
+      if (sStart===null){ sStart=start; sEnd=end; }
+      else if (start - sEnd <= GAP){ sEnd = Math.max(sEnd, end); }
+      else { sessionSec += (sEnd - sStart)/1000; sStart=start; sEnd=end; }
+    }
+    if (sStart!==null) sessionSec += (sEnd - sStart)/1000;
+  }
+  const totalActivities = (cache.totalActivities||0) + newActs.length;
+  const totalSec = Object.values(days).reduce((a,d)=>a+d.s,0);
+  const out = { days, lastPeriod:newestPeriod, totalActivities, sessionSec, totalSec, fetchedAt: Date.now() };
+  saveJSON(cacheKey, out);
+  return out;
+}
 
-  // ---- Guardian header ----
-  const head = el("div", "guardian-head");
+// ---- streaks from daily map ----------------------------------------------
+function computeStreaks(days){
+  const keys = Object.keys(days).sort();
+  if (!keys.length) return null;
+  const first = midnight(keys[0]); const today = todayMid();
+  const active = new Set(keys);
+  let longestActive=0, longestInactive=0, runA=0, runI=0;
+  for (let d=new Date(first); d<=today; d.setDate(d.getDate()+1)){
+    if (active.has(dateKey(d))){ runA++; runI=0; if(runA>longestActive) longestActive=runA; }
+    else { runI++; runA=0; if(runI>longestInactive) longestInactive=runI; }
+  }
+  const todayActive = active.has(dateKey(today));
+  let cur=0; for (let d=new Date(today); d>=first; d.setDate(d.getDate()-1)){ if (active.has(dateKey(d))===todayActive) cur++; else break; }
+  let best=null; for (const k of keys){ if (!best || days[k].s>days[best].s) best=k; }
+  return { longestActive, longestInactive, current:cur, currentState: todayActive?"active":"inactive",
+           activeDays: keys.length, busiest:{ date:best, s:best?days[best].s:0 }, first:keys[0], last:keys[keys.length-1] };
+}
+
+// =========================================================================
+//  HEATMAP RENDERING
+// =========================================================================
+function heatColor(sec){
+  if (!sec) return null;
+  const t = Math.min(1, (sec/3600)/5);          // cap intensity at ~5h/day
+  const hue = 120 - 120*t;                       // green -> red
+  const light = 46 - 12*t;
+  return `hsl(${hue.toFixed(0)},72%,${light.toFixed(0)}%)`;
+}
+function buildHeatGrid(start, end, days, cellPx){
+  const gs = weekStart(start);
+  const cap = end > todayMid() ? todayMid() : midnight(end);
+  const startM = midnight(start);
+  const weeks = Math.floor((weekStart(cap) - gs) / (7*86400000)) + 1;
+  const grid = el("div","heatgrid");
+  grid.style.gridTemplateRows = `repeat(7, ${cellPx}px)`;
+  grid.style.gridAutoColumns = `${cellPx}px`;
+  for (let w=0; w<weeks; w++){
+    for (let r=0; r<7; r++){
+      const day = new Date(gs.getTime() + (w*7+r)*86400000);
+      const cell = document.createElement("div");
+      cell.className = "hcell";
+      if (day < startM || day > cap){ cell.className += " empty-pad"; }
+      else {
+        const k = dateKey(day); const info = days[k]; const sec = info ? info.s : 0;
+        const col = heatColor(sec); if (col) cell.style.background = col;
+        cell.title = `${k} — ${sec ? fmtDuration(sec) : "no play"}${info ? ` · ${info.c} activities` : ""}`;
+      }
+      grid.appendChild(cell);
+    }
+  }
+  return grid;
+}
+function sumRange(days, start, end){
+  let s=0; for (const k in days){ const d=midnight(k); if (d>=midnight(start) && d<midnight(end)) s+=days[k].s; } return s;
+}
+function renderSeasonView(host, days){
+  host.innerHTML = "";
+  const wrap = el("div","season-wrap");
+  const firstPlay = midnight(Object.keys(days).sort()[0] || new Date());
+  for (let i=0;i<SEASONS.length;i++){
+    const start = new Date(SEASONS[i].d+"T00:00:00");
+    const end = i+1<SEASONS.length ? new Date(SEASONS[i+1].d+"T00:00:00") : new Date(Date.now()+86400000);
+    if (end < firstPlay) continue;                 // skip seasons before the player started
+    const sec = sumRange(days, start, end);
+    const block = el("div","season-block");
+    block.appendChild(el("div","sb-title", escapeHtml(SEASONS[i].n)));
+    block.appendChild(el("div","sb-time", sec ? fmtDuration(sec) : "—"));
+    block.appendChild(buildHeatGrid(start, end, days, 9));
+    wrap.appendChild(block);
+  }
+  host.appendChild(wrap);
+}
+function renderYearView(host, days){
+  host.innerHTML = "";
+  const keys = Object.keys(days).sort(); if (!keys.length) return;
+  const y0 = new Date(keys[0]).getFullYear(); const y1 = new Date().getFullYear();
+  for (let y=y0; y<=y1; y++){
+    const block = el("div","year-block");
+    const total = sumRange(days, new Date(y,0,1), new Date(y+1,0,1));
+    block.appendChild(el("div","yb-title", `${y} <span style="color:var(--muted);font-weight:400;font-size:12px;">${fmtDuration(total)}</span>`));
+    const scroll = el("div","heat-scroll");
+    scroll.appendChild(buildHeatGrid(new Date(y,0,1), new Date(y,11,31), days, 11));
+    block.appendChild(scroll);
+    host.appendChild(block);
+  }
+}
+
+// =========================================================================
+//  TRACK VIEW RENDER
+// =========================================================================
+let CURRENT_MEMBER = null, CURRENT_PROFILE = null;
+
+function render(member, profile, stats){
+  const results = $("#results"); results.innerHTML = ""; results.style.display = "block";
+  const characters = (profile.characters && profile.characters.data) || {};
+  const charList = Object.values(characters).sort((a,b)=> new Date(b.dateLastPlayed)-new Date(a.dateLastPlayed));
+  const userInfo = (profile.profile && profile.profile.data && profile.profile.data.userInfo) || member;
+  const merged = stats && stats.mergedAllCharacters && stats.mergedAllCharacters.merged;
+  let totalSeconds = merged ? statVal(merged.allTime,"secondsPlayed") : 0;
+  if (!totalSeconds) totalSeconds = charList.reduce((s,c)=> s + (parseInt(c.minutesPlayedTotal,10)||0)*60, 0);
+  const activityCount = merged ? statVal(merged.allTime,"activitiesEntered") : 0;
+
+  // header
+  const head = el("div","guardian-head");
   const banner = charList[0] && charList[0].emblemBackgroundPath;
-  if (banner) { const bg = el("div", "bgimg"); bg.style.backgroundImage = `url(${BASE + banner})`; head.appendChild(bg); }
-  const name = userInfo.bungieGlobalDisplayName || userInfo.displayName || member.bungieGlobalDisplayName || "Guardian";
+  if (banner){ const bg=el("div","bgimg"); bg.style.backgroundImage=`url(${BASE+banner})`; head.appendChild(bg); }
+  const name = userInfo.bungieGlobalDisplayName || userInfo.displayName || "Guardian";
   const code = userInfo.bungieGlobalDisplayNameCode || member.bungieGlobalDisplayNameCode;
-  const isMe = !!getToken() && String(member.membershipId) === String(getMyMembershipId());
-  head.appendChild(el("div", "info",
-    `<h2>${escapeHtml(name)}${code ? `<span class="tag">#${String(code).padStart(4,"0")}</span>` : ""}
-      ${isMe ? '<span class="me-badge">YOU</span>' : ""}
-      <span class="platform-pill">${PLATFORMS[member.membershipType] || "Cross Save"}</span></h2>
-     <div class="sub">${charList.length} character${charList.length !== 1 ? "s" : ""}
-       &middot; last played ${timeAgo(profile.profile && profile.profile.data && profile.profile.data.dateLastPlayed)}</div>`));
+  const isMe = !!getToken() && String(member.membershipId)===String(getMyMembershipId());
+  head.appendChild(el("div","info",
+    `<h2>${escapeHtml(name)}${code?`<span class="tag">#${String(code).padStart(4,"0")}</span>`:""} ${isMe?'<span class="me-badge">YOU</span>':""}
+      <span class="platform-pill">${PLATFORMS[member.membershipType]||"Cross Save"}</span></h2>
+     <div class="sub">${charList.length} character${charList.length!==1?"s":""} &middot; last played ${timeAgo(profile.profile && profile.profile.data && profile.profile.data.dateLastPlayed)}</div>`));
   results.appendChild(head);
 
-  // ---- Hero total ----
-  const hero = el("div", "hero-stat",
-    `<div class="label">Total Time Played</div>
-     <div class="big">${fmtDuration(totalSeconds)}</div>
-     <div class="alt">${commas(totalSeconds / 3600)} hours &nbsp;&middot;&nbsp; ${(totalSeconds/86400).toFixed(1)} days</div>`);
-  results.appendChild(hero);
+  // stat tiles (hero + the rest fill in after history loads)
+  const sg = el("div","stat-grid");
+  sg.innerHTML = `
+    <div class="stat-tile hero"><div class="v">${fmtDuration(totalSeconds)}</div><div class="l">Total Time in Activities</div>
+      <div class="x">${commas(totalSeconds/3600)} hours · ${(totalSeconds/86400).toFixed(1)} days</div></div>
+    <div class="stat-tile"><div class="v small" id="stTotalDestiny">—</div><div class="l">Time in Destiny 2</div><div class="x">incl. between activities</div></div>
+    <div class="stat-tile"><div class="v" id="stActivities">${activityCount?commas(activityCount):"—"}</div><div class="l">Activities</div></div>
+    <div class="stat-tile"><div class="v small" id="stCurrent">—</div><div class="l">Current Streak</div></div>
+    <div class="stat-tile"><div class="v small" id="stLongAct">—</div><div class="l">Longest Active</div></div>
+    <div class="stat-tile"><div class="v small" id="stLongIna">—</div><div class="l">Longest Inactive</div></div>`;
+  results.appendChild(sg);
 
-  // ---- Per-character cards ----
-  results.appendChild(el("div", "section-title", "By Character"));
-  const cards = el("div", "grid cards");
-  const charSeconds = charList.map(c => {
-    const cs = stats && stats.characters && stats.characters.find(x => x.characterId === c.characterId);
-    let sec = cs && cs.merged ? statVal(cs.merged.allTime, "secondsPlayed") : 0;
-    if (!sec) sec = (parseInt(c.minutesPlayedTotal, 10) || 0) * 60;
-    return sec;
+  // characters
+  results.appendChild(el("div","section-title","By Character"));
+  const cards = el("div","grid cards");
+  const charSeconds = charList.map(c=>{
+    const cs = stats && stats.characters && stats.characters.find(x=>x.characterId===c.characterId);
+    let sec = cs && cs.merged ? statVal(cs.merged.allTime,"secondsPlayed") : 0;
+    if (!sec) sec = (parseInt(c.minutesPlayedTotal,10)||0)*60; return sec;
   });
-  const maxSec = Math.max(1, ...charSeconds);
-  charList.forEach((c, i) => {
-    const sec = charSeconds[i];
-    const card = el("div", "char-card");
-    const emblem = el("div", "emblem");
-    if (c.emblemBackgroundPath) emblem.style.backgroundImage = `url(${BASE + c.emblemBackgroundPath})`;
-    const ic = el("div", "ic"); if (c.emblemPath) ic.style.backgroundImage = `url(${BASE + c.emblemPath})`;
-    emblem.appendChild(ic);
-    emblem.appendChild(el("div", "meta",
-      `<div class="cls" style="color:${CLASS_COLOR[c.classType] || "var(--text)"}">${CLASS_NAMES[c.classType] || "Guardian"}</div>
-       <div class="lvl">&#9733; ${c.light || 0}</div>`));
+  const maxSec = Math.max(1,...charSeconds);
+  charList.forEach((c,i)=>{
+    const sec = charSeconds[i]; const card = el("div","char-card");
+    const emblem = el("div","emblem"); if (c.emblemBackgroundPath) emblem.style.backgroundImage=`url(${BASE+c.emblemBackgroundPath})`;
+    const ic = el("div","ic"); if (c.emblemPath) ic.style.backgroundImage=`url(${BASE+c.emblemPath})`; emblem.appendChild(ic);
+    emblem.appendChild(el("div","meta",`<div class="cls" style="color:${CLASS_COLOR[c.classType]||"var(--text)"}">${CLASS_NAMES[c.classType]||"Guardian"}</div><div class="lvl">&#9733; ${c.light||0}</div>`));
     card.appendChild(emblem);
-    card.appendChild(el("div", "body",
-      `<div class="pt">${fmtDuration(sec)}</div>
-       <div class="row"><span>${((sec/totalSeconds)*100 || 0).toFixed(1)}% of total</span><span>${timeAgo(c.dateLastPlayed)}</span></div>
-       <div class="bar-track"><div class="bar-fill" style="width:${(sec/maxSec)*100}%"></div></div>`));
+    card.appendChild(el("div","body",`<div class="pt">${fmtDuration(sec)}</div>
+      <div class="row"><span>${((sec/totalSeconds)*100||0).toFixed(1)}% of total</span><span>${timeAgo(c.dateLastPlayed)}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(sec/maxSec)*100}%"></div></div>`));
     cards.appendChild(card);
   });
   results.appendChild(cards);
 
-  // ---- Mode breakdown (PvE / PvP / Gambit / etc.) ----
+  // calendar / heatmap host (filled after history loads)
+  const ht = el("div","section-title");
+  ht.innerHTML = `<span>Activity Calendar</span>`;
+  const toggle = el("div","toggle");
+  toggle.innerHTML = `<button id="hvSeason" class="active">By Season</button><button id="hvYear">By Year</button>
+    <span class="heat-legend" style="margin-left:12px;">Less <span class="sw" style="background:#1a2230"></span>
+      <span class="sw" style="background:hsl(120,72%,46%)"></span><span class="sw" style="background:hsl(60,72%,40%)"></span>
+      <span class="sw" style="background:hsl(0,72%,34%)"></span> More</span>`;
+  ht.appendChild(toggle);
+  results.appendChild(ht);
+  const heatLoad = el("div","",`<span class="spinner"></span>Loading activity history… <div class="progress"><div id="histBar"></div></div>`);
+  results.appendChild(heatLoad);
+  const heatHost = el("div"); heatHost.id="heatHost"; heatHost.style.display="none"; results.appendChild(heatHost);
+  const seasonHost = el("div"); seasonHost.id="seasonHost"; heatHost.appendChild(seasonHost);
+  const yearHost = el("div"); yearHost.id="yearHost"; yearHost.style.display="none"; heatHost.appendChild(yearHost);
+
+  // mode breakdown
   const modeResults = (stats && stats.mergedAllCharacters && stats.mergedAllCharacters.results) || {};
-  const modeRows = Object.entries(modeResults)
-    .map(([key, v]) => ({ key, sec: statVal(v.allTime, "secondsPlayed"), games: statVal(v.allTime, "activitiesEntered") }))
-    .filter(r => r.sec > 0 && PRETTY_MODE[r.key])
-    .sort((a, b) => b.sec - a.sec);
-  if (modeRows.length) {
-    results.appendChild(el("div", "section-title", "By Activity Type"));
-    const modes = el("div", "grid modes");
-    modeRows.forEach(r => {
-      modes.appendChild(el("div", "mode-card",
-        `<div class="m-name">${PRETTY_MODE[r.key]}</div>
-         <div class="m-time">${fmtDuration(r.sec)}</div>
-         <div class="m-sub">${commas(r.games)} activities &middot; ${((r.sec/totalSeconds)*100).toFixed(0)}%</div>`));
-    });
+  const modeRows = Object.entries(modeResults).map(([key,v])=>({ key, sec:statVal(v.allTime,"secondsPlayed"), games:statVal(v.allTime,"activitiesEntered") }))
+    .filter(r=> r.sec>0 && PRETTY_MODE[r.key]).sort((a,b)=> b.sec-a.sec);
+  if (modeRows.length){
+    results.appendChild(el("div","section-title","By Activity Type"));
+    const modes = el("div","grid modes");
+    modeRows.forEach(r=> modes.appendChild(el("div","mode-card",
+      `<div class="m-name">${PRETTY_MODE[r.key]}</div><div class="m-time">${fmtDuration(r.sec)}</div>
+       <div class="m-sub">${commas(r.games)} activities · ${((r.sec/totalSeconds)*100).toFixed(0)}%</div>`)));
     results.appendChild(modes);
   }
 
-  // ---- Fun comparisons ----
-  results.appendChild(el("div", "section-title", "For Perspective"));
-  const days = totalSeconds / 86400, hours = totalSeconds / 3600;
-  const fun = el("div", "grid fun");
-  [
-    [ (hours / 40).toFixed(1), "40-hour work weeks" ],
-    [ (hours / 11.4).toFixed(0), "Lord of the Rings trilogy rewatches (extended)" ],
-    [ ((days / 365) * 100).toFixed(2) + "%", "of a full year, lived in the Tower" ],
-    [ commas(hours * 1.8), "approx. estimated activities completed" ],
-  ].forEach(([n, t]) => fun.appendChild(el("div", "fun-card", `<div class="n">${n}</div><div class="t">${t}</div>`)));
+  // fun
+  results.appendChild(el("div","section-title","For Perspective"));
+  const hours = totalSeconds/3600, daysN = totalSeconds/86400;
+  const fun = el("div","grid fun");
+  [[ (hours/40).toFixed(1), "40-hour work weeks" ],
+   [ (hours/11.4).toFixed(0), "LotR trilogy rewatches (extended)" ],
+   [ ((daysN/365)*100).toFixed(2)+"%", "of a full year in the Tower" ],
+   [ commas(activityCount||hours*1.8), "activities completed" ],
+  ].forEach(([n,t])=> fun.appendChild(el("div","fun-card",`<div class="n">${n}</div><div class="t">${t}</div>`)));
   results.appendChild(fun);
 
-  results.scrollIntoView({ behavior: "smooth", block: "start" });
+  // wire heatmap toggle
+  $("#hvSeason").onclick = ()=>{ $("#hvSeason").classList.add("active"); $("#hvYear").classList.remove("active"); seasonHost.style.display="block"; yearHost.style.display="none"; };
+  $("#hvYear").onclick   = ()=>{ $("#hvYear").classList.add("active"); $("#hvSeason").classList.remove("active"); yearHost.style.display="block"; seasonHost.style.display="none"; };
+
+  results.scrollIntoView({ behavior:"smooth", block:"start" });
+
+  // ---- async: load activity history, then fill calendar + streak tiles ----
+  const charIds = charList.map(c=>c.characterId);
+  fetchHistory(member.membershipType, member.membershipId, charIds, (pages)=>{
+    const bar=$("#histBar"); if (bar) bar.style.width = Math.min(95, pages*6)+"%";
+  }).then(hist=>{
+    heatLoad.remove(); heatHost.style.display="block";
+    renderSeasonView(seasonHost, hist.days);
+    renderYearView(yearHost, hist.days);
+    const st = computeStreaks(hist.days);
+    if (st){
+      $("#stCurrent").textContent = st.current + "d " + st.currentState;
+      $("#stLongAct").textContent = st.longestActive + "d";
+      $("#stLongIna").textContent = st.longestInactive + "d";
+    }
+    if (hist.sessionSec) $("#stTotalDestiny").textContent = fmtDuration(hist.sessionSec);
+    if (!activityCount && hist.totalActivities) $("#stActivities").textContent = commas(hist.totalActivities);
+  }).catch(err=>{
+    heatLoad.innerHTML = `<span class="err">Couldn't load activity history (${escapeHtml(err.message)}). Streaks & calendar need public activity history.</span>`;
+  });
 }
 
-const PRETTY_MODE = {
-  allPvE: "PvE", allPvP: "Crucible (PvP)", allPvPCompetitive: "Competitive", allPvPQuickplay: "Quickplay",
-  allStrikes: "Strikes", patrol: "Patrol", raid: "Raids", story: "Story",
-  allGambit: "Gambit", gambit: "Gambit", allMayhem: "Mayhem", trials_of_osiris: "Trials of Osiris",
-  ironBanner: "Iron Banner", nightfall: "Nightfall", scoredNightfall: "Nightfall (Scored)",
-  allDoubles: "Doubles", control: "Control", survival: "Survival", elimination: "Elimination",
-};
+const PRETTY_MODE = { allPvE:"PvE", allPvP:"Crucible (PvP)", allPvPCompetitive:"Competitive", allPvPQuickplay:"Quickplay",
+  allStrikes:"Strikes", patrol:"Patrol", raid:"Raids", story:"Story", allGambit:"Gambit", gambit:"Gambit",
+  allMayhem:"Mayhem", trials_of_osiris:"Trials of Osiris", ironBanner:"Iron Banner", nightfall:"Nightfall",
+  scoredNightfall:"Nightfall (Scored)", control:"Control", survival:"Survival", elimination:"Elimination" };
 
-function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function timeAgo(dateStr) {
-  if (!dateStr) return "unknown";
-  const diff = (Date.now() - new Date(dateStr)) / 1000;
-  if (diff < 3600) return Math.floor(diff/60) + "m ago";
-  if (diff < 86400) return Math.floor(diff/3600) + "h ago";
-  if (diff < 2592000) return Math.floor(diff/86400) + "d ago";
-  return new Date(dateStr).toLocaleDateString();
+// ---- search flow + recent searches ---------------------------------------
+function getRecents(){ return loadJSON("gc_recent") || []; }
+function pushRecent(member, label){
+  let r = getRecents().filter(x=> x.id !== member.membershipId);
+  r.unshift({ id: member.membershipId, type: member.membershipType, label });
+  saveJSON("gc_recent", r.slice(0,8)); renderExamples();
+}
+function renderExamples(){
+  const box = $("#examples"); box.innerHTML = "";
+  const recents = getRecents();
+  if (recents.length){
+    box.appendChild(el("span","chip-label","Recent:"));
+    recents.forEach(r=>{
+      const c = el("span","chip"); c.innerHTML = `<span class="rname">${escapeHtml(r.label)}</span> <span class="x">&times;</span>`;
+      c.querySelector(".rname").onclick = ()=>{ $("#nameInput").value=r.label; runSearch(r.label); };
+      c.querySelector(".x").onclick = (e)=>{ e.stopPropagation(); saveJSON("gc_recent", getRecents().filter(x=>x.id!==r.id)); renderExamples(); };
+      box.appendChild(c);
+    });
+  } else {
+    box.appendChild(el("span","chip-label","Try:"));
+    [["Cozmo#1648"],["dmg04#1968"]].forEach(([n])=>{ const c=el("span","chip",n); c.onclick=()=>{ $("#nameInput").value=n; runSearch(n); }; box.appendChild(c); });
+  }
+}
+function showRecentPop(){
+  const pop=$("#recentPop"); const recents=getRecents();
+  if (!recents.length){ pop.classList.remove("open"); return; }
+  pop.innerHTML = `<div class="rhead">Recent searches</div>` + recents.map(r=>`<div class="ritem" data-name="${escapeHtml(r.label)}"><span>${escapeHtml(r.label)}</span><small>${PLATFORMS[r.type]||""}</small></div>`).join("");
+  pop.querySelectorAll(".ritem").forEach(it=> it.onclick=()=>{ $("#nameInput").value=it.dataset.name; pop.classList.remove("open"); runSearch(it.dataset.name); });
+  pop.classList.add("open");
 }
 
-// --- search flow -----------------------------------------------------------
-async function runSearch(raw) {
-  if (!raw) return;
-  $("#results").style.display = "none";
-  setStatus('<span class="spinner"></span> Searching for ' + escapeHtml(raw) + ' ...');
+async function runSearch(raw){
+  if (!raw) return; const pop=$("#recentPop"); if (pop) pop.classList.remove("open");
+  $("#results").style.display="none";
+  setStatus('<span class="spinner"></span> Searching for '+escapeHtml(raw)+' …');
   try {
     const member = await findMembership(raw);
-    setStatus('<span class="spinner"></span> Loading profile &amp; stats ...');
-    const [profile, stats] = await Promise.all([
-      getProfile(member.membershipType, member.membershipId),
-      getAccountStats(member.membershipType, member.membershipId).catch(() => null),
-    ]);
-    if (!profile || !profile.characters || !profile.characters.data || !Object.keys(profile.characters.data).length) {
-      throw new Error("This profile has no characters or its data is private.");
-    }
-    setStatus("");
+    setStatus('<span class="spinner"></span> Loading profile &amp; stats …');
+    const [profile, stats] = await Promise.all([ getProfile(member.membershipType, member.membershipId), getAccountStats(member.membershipType, member.membershipId).catch(()=>null) ]);
+    if (!profile || !profile.characters || !profile.characters.data || !Object.keys(profile.characters.data).length) throw new Error("This profile has no characters or its data is private.");
+    setStatus(""); CURRENT_MEMBER=member; CURRENT_PROFILE=profile;
+    const ui=(profile.profile&&profile.profile.data&&profile.profile.data.userInfo)||member;
+    const label=(ui.bungieGlobalDisplayName||ui.displayName)+"#"+String(ui.bungieGlobalDisplayNameCode||member.bungieGlobalDisplayNameCode||"").padStart(4,"0");
+    pushRecent(member, label);
     render(member, profile, stats);
-  } catch (e) {
-    setStatus("&#9888; " + escapeHtml(e.message), true);
-  }
+  } catch(e){ setStatus("&#9888; "+escapeHtml(e.message), true); }
 }
 
 // =========================================================================
-// OAuth (optional, for "sign in as yourself"). Works only when HOSTED on
-// https (Bungie requires a registered redirect URL). On a local file:// page
-// the button explains why it's disabled.
+//  COMPARE VIEW
 // =========================================================================
-function getToken() {
-  try {
-    const t = JSON.parse(localStorage.getItem("gc_token") || "null");
-    if (t && t.access_token && Date.now() < t.expires_at) return t.access_token;
-  } catch (e) {}
-  return null;
+let CMP_PLAYERS = [];   // {raw} entries the user added
+function renderCmpPlayers(){
+  const box=$("#cmpPlayers"); box.innerHTML="";
+  CMP_PLAYERS.forEach((p,i)=>{ const c=el("span","chip"); c.innerHTML=`<span>${escapeHtml(p.raw)}</span> <span class="x">&times;</span>`;
+    c.querySelector(".x").onclick=()=>{ CMP_PLAYERS.splice(i,1); renderCmpPlayers(); }; box.appendChild(c); });
 }
-function getMyMembershipId() { try { return localStorage.getItem("gc_membership_id"); } catch (e) { return null; } }
-
-function startOAuth() {
-  if (location.protocol === "file:") {
-    alert("Sign-in needs the tool to be hosted on a web address (https). Searching other players works fine locally.\n\nSee the Setup section to host it free on GitHub Pages.");
-    return;
-  }
-  const state = Math.random().toString(36).slice(2);
-  sessionStorage.setItem("gc_state", state);
-  location.href = `${BASE}/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}`;
+function addCmpPlayer(raw){
+  raw=(raw||"").trim(); if(!raw) return;
+  if (!parseBungieName(raw)){ setStatus("&#9888; Use the form Name#1234",true,"#cmpStatus"); return; }
+  if (CMP_PLAYERS.length>=6){ setStatus("&#9888; Max 6 players.",true,"#cmpStatus"); return; }
+  if (CMP_PLAYERS.some(p=>p.raw.toLowerCase()===raw.toLowerCase())) return;
+  CMP_PLAYERS.push({ raw }); renderCmpPlayers(); $("#cmpInput").value="";
 }
 
-async function handleOAuthCallback() {
-  const params = new URLSearchParams(location.search);
-  const code = params.get("code");
-  if (!code) return false;
-  const state = params.get("state");
-  if (state && sessionStorage.getItem("gc_state") && state !== sessionStorage.getItem("gc_state")) {
-    setStatus("Sign-in failed: state mismatch.", true); return true;
+async function loadCmpFast(raw){
+  const member = await findMembership(raw);
+  const [profile, stats] = await Promise.all([ getProfile(member.membershipType, member.membershipId), getAccountStats(member.membershipType, member.membershipId).catch(()=>null) ]);
+  const chars=(profile.characters&&profile.characters.data)||{};
+  const charList=Object.values(chars);
+  const merged = stats&&stats.mergedAllCharacters&&stats.mergedAllCharacters.merged;
+  let total = merged?statVal(merged.allTime,"secondsPlayed"):0;
+  if(!total) total=charList.reduce((s,c)=>s+(parseInt(c.minutesPlayedTotal,10)||0)*60,0);
+  const byClass={0:0,1:0,2:0};
+  charList.forEach(c=>{ const cs=stats&&stats.characters&&stats.characters.find(x=>x.characterId===c.characterId);
+    let sec=cs&&cs.merged?statVal(cs.merged.allTime,"secondsPlayed"):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60;
+    if(byClass[c.classType]!==undefined) byClass[c.classType]+=sec; });
+  const pvp = stats&&stats.mergedAllCharacters&&stats.mergedAllCharacters.results&&stats.mergedAllCharacters.results.allPvP;
+  const ui=(profile.profile&&profile.profile.data&&profile.profile.data.userInfo)||member;
+  return { member, profile, label:(ui.bungieGlobalDisplayName||ui.displayName)+"#"+String(ui.bungieGlobalDisplayNameCode||"").padStart(4,"0"),
+    total, activities: merged?statVal(merged.allTime,"activitiesEntered"):0, byClass,
+    kd: pvp?statVal(pvp.allTime,"killsDeathsRatio"):0,
+    light: Math.max(0,...charList.map(c=>c.light||0)),
+    lastPlayed: profile.profile&&profile.profile.data&&profile.profile.data.dateLastPlayed,
+    charIds: charList.map(c=>c.characterId), streaks:null };
+}
+
+function renderCompare(rows, detailed){
+  const host=$("#cmpResults"); host.style.display="block";
+  const cols = [
+    { k:"total", t:"Total Time", f:v=>fmtDuration(v), max:true },
+    { k:"activities", t:"Activities", f:v=>commas(v), max:true },
+    { k:0, t:"Titan", f:v=>fmtShort(v), cls:true, max:true },
+    { k:1, t:"Hunter", f:v=>fmtShort(v), cls:true, max:true },
+    { k:2, t:"Warlock", f:v=>fmtShort(v), cls:true, max:true },
+    { k:"kd", t:"K/D", f:v=>v?v.toFixed(2):"—", max:true },
+    { k:"light", t:"Power", f:v=>v||"—", max:true },
+  ];
+  if (detailed){
+    cols.push({ k:"curStreak", t:"Streak", f:(v,r)=> r.streaks?`${r.streaks.current}d ${r.streaks.currentState[0]}`:"—" });
+    cols.push({ k:"longAct", t:"Best Active", f:(v,r)=> r.streaks?r.streaks.longestActive+"d":"—", max:true, get:r=>r.streaks?r.streaks.longestActive:0 });
   }
-  setStatus('<span class="spinner"></span> Completing sign-in ...');
-  try {
-    const res = await fetch(API + "/App/OAuth/Token/", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-API-Key": API_KEY },
-      body: new URLSearchParams({ grant_type: "authorization_code", code, client_id: CLIENT_ID }),
-    });
-    const tok = await res.json();
-    if (!tok.access_token) throw new Error(tok.error_description || "Token exchange failed.");
-    localStorage.setItem("gc_token", JSON.stringify({
-      access_token: tok.access_token,
-      expires_at: Date.now() + (tok.expires_in - 60) * 1000,
-    }));
-    // Clean the URL.
-    history.replaceState({}, "", location.pathname);
-    await loadSelf();
-  } catch (e) {
-    setStatus("&#9888; Sign-in error: " + escapeHtml(e.message), true);
+  const getVal=(r,c)=> c.cls ? (r.byClass[c.k]||0) : (c.get?c.get(r):r[c.k]);
+  const maxes={}; cols.forEach((c,ci)=>{ if(c.max) maxes[ci]=Math.max(...rows.map(r=>getVal(r,c)||0)); });
+
+  let html = `<div class="cmp-table-wrap"><table class="cmp"><thead><tr><th class="name">Player</th>${cols.map(c=>`<th>${c.t}</th>`).join("")}</tr></thead><tbody>`;
+  rows.forEach(r=>{
+    html += `<tr><td class="name">${escapeHtml(r.label)}</td>` + cols.map((c,ci)=>{
+      const v=getVal(r,c); const best = c.max && maxes[ci]>0 && v===maxes[ci];
+      return `<td class="${best?"best":""}">${c.f(v,r)}</td>`;
+    }).join("") + `</tr>`;
+  });
+  html += `</tbody></table></div>`;
+
+  const maxT=Math.max(...rows.map(r=>r.total));
+  html += `<div class="cmp-bars"><div class="section-title" style="margin-top:24px;">Total Time</div>`;
+  rows.slice().sort((a,b)=>b.total-a.total).forEach(r=>{
+    html += `<div class="cmp-bar-row"><div>${escapeHtml(r.label)}</div><div class="bt"><div class="bf" style="width:${(r.total/maxT*100).toFixed(1)}%"></div></div><div>${fmtDuration(r.total)}</div></div>`;
+  });
+  html += `</div>`;
+  if (!detailed) html += `<div style="margin-top:18px;"><button class="btn" id="cmpDetailBtn">Run detailed comparison (loads streaks — slower)</button></div>`;
+  host.innerHTML = html;
+  if (!detailed) $("#cmpDetailBtn").onclick = runDetailedCompare;
+}
+
+let CMP_ROWS = [];
+async function runCompare(){
+  if (CMP_PLAYERS.length<2){ setStatus("&#9888; Add at least 2 players.",true,"#cmpStatus"); return; }
+  $("#cmpResults").style.display="none"; CMP_ROWS=[];
+  for (let i=0;i<CMP_PLAYERS.length;i++){
+    setStatus(`<span class="spinner"></span> Loading ${escapeHtml(CMP_PLAYERS[i].raw)} (${i+1}/${CMP_PLAYERS.length}) …`,false,"#cmpStatus");
+    try { CMP_ROWS.push(await loadCmpFast(CMP_PLAYERS[i].raw)); }
+    catch(e){ setStatus(`&#9888; ${escapeHtml(CMP_PLAYERS[i].raw)}: ${escapeHtml(e.message)}`,true,"#cmpStatus"); return; }
   }
+  setStatus("",false,"#cmpStatus"); renderCompare(CMP_ROWS, false);
+}
+async function runDetailedCompare(){
+  const btn=$("#cmpDetailBtn"); if(btn) btn.textContent="Loading histories…";
+  for (let i=0;i<CMP_ROWS.length;i++){
+    const r=CMP_ROWS[i];
+    setStatus(`<span class="spinner"></span> Activity history for ${escapeHtml(r.label)} (${i+1}/${CMP_ROWS.length}) …`,false,"#cmpStatus");
+    try { const hist=await fetchHistory(r.member.membershipType, r.member.membershipId, r.charIds, ()=>{}); r.streaks=computeStreaks(hist.days); }
+    catch(e){ r.streaks=null; }
+  }
+  setStatus("",false,"#cmpStatus"); renderCompare(CMP_ROWS, true);
+}
+
+// =========================================================================
+//  OAUTH (optional, for "sign in as yourself"; needs https hosting)
+// =========================================================================
+function getToken(){ try{ const t=JSON.parse(localStorage.getItem("gc_token")||"null"); if(t&&t.access_token&&Date.now()<t.expires_at) return t.access_token; }catch(e){} return null; }
+function getMyMembershipId(){ try{ return localStorage.getItem("gc_membership_id"); }catch(e){ return null; } }
+function startOAuth(){
+  if (location.protocol==="file:"){ alert("Sign-in needs the tool hosted on https. Searching other players works fine locally. See Setup to host on GitHub Pages."); return; }
+  const state=Math.random().toString(36).slice(2); sessionStorage.setItem("gc_state",state);
+  location.href=`${BASE}/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}`;
+}
+async function handleOAuthCallback(){
+  const params=new URLSearchParams(location.search); const code=params.get("code"); if(!code) return false;
+  const state=params.get("state"); if(state&&sessionStorage.getItem("gc_state")&&state!==sessionStorage.getItem("gc_state")){ setStatus("Sign-in failed: state mismatch.",true); return true; }
+  setStatus('<span class="spinner"></span> Completing sign-in …');
+  try{
+    const res=await fetch(API+"/App/OAuth/Token/",{ method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded","X-API-Key":API_KEY},
+      body:new URLSearchParams({ grant_type:"authorization_code", code, client_id:CLIENT_ID }) });
+    const tok=await res.json(); if(!tok.access_token) throw new Error(tok.error_description||"Token exchange failed.");
+    localStorage.setItem("gc_token", JSON.stringify({ access_token:tok.access_token, expires_at:Date.now()+(tok.expires_in-60)*1000 }));
+    history.replaceState({}, "", location.pathname); await loadSelf();
+  }catch(e){ setStatus("&#9888; Sign-in error: "+escapeHtml(e.message), true); }
   return true;
 }
-
-async function loadSelf() {
-  try {
-    const me = await bungie("/User/GetMembershipsForCurrentUser/", { headers: authHeaders() });
-    const primaryId = me.primaryMembershipId;
-    const dm = (me.destinyMemberships || []);
-    const membership = dm.find(m => m.membershipId === primaryId) || dm[0];
-    if (!membership) throw new Error("No Destiny characters on this Bungie account.");
-    localStorage.setItem("gc_membership_id", membership.membershipId);
-    renderAuthArea(me.bungieNetUser);
-    const tag = membership.bungieGlobalDisplayName + "#" + String(membership.bungieGlobalDisplayNameCode).padStart(4,"0");
-    $("#nameInput").value = tag;
-    runSearch(tag);
-  } catch (e) {
-    setStatus("&#9888; " + escapeHtml(e.message), true);
-  }
+async function loadSelf(){
+  try{
+    const me=await bungie("/User/GetMembershipsForCurrentUser/",{ headers:authHeaders() });
+    const dm=me.destinyMemberships||[]; const membership=dm.find(m=>m.membershipId===me.primaryMembershipId)||dm[0];
+    if(!membership) throw new Error("No Destiny characters on this Bungie account.");
+    localStorage.setItem("gc_membership_id", membership.membershipId); renderAuthArea(me.bungieNetUser);
+    const tag=membership.bungieGlobalDisplayName+"#"+String(membership.bungieGlobalDisplayNameCode).padStart(4,"0");
+    $("#nameInput").value=tag; runSearch(tag);
+  }catch(e){ setStatus("&#9888; "+escapeHtml(e.message), true); }
+}
+function renderAuthArea(user){
+  const area=$("#authArea");
+  if (getToken()){
+    const nm=user?(user.displayName||"your account"):"your account";
+    area.innerHTML=`<span style="color:var(--muted);font-size:13px;margin-right:10px;">Signed in as ${escapeHtml(nm)}</span><button class="btn ghost" id="signOutBtn">Sign out</button>`;
+    $("#signOutBtn").onclick=()=>{ localStorage.removeItem("gc_token"); localStorage.removeItem("gc_membership_id"); location.reload(); };
+  } else { area.innerHTML=`<button class="btn" id="signInBtn">Sign in with Bungie</button>`; $("#signInBtn").onclick=startOAuth; }
 }
 
-function renderAuthArea(user) {
-  const area = $("#authArea");
-  if (getToken()) {
-    const nm = user ? (user.displayName || "your account") : "your account";
-    area.innerHTML = `<span style="color:var(--muted);font-size:13px;margin-right:10px;">Signed in as ${escapeHtml(nm)}</span>
-      <button class="btn ghost" id="signOutBtn">Sign out</button>`;
-    $("#signOutBtn").onclick = () => { localStorage.removeItem("gc_token"); localStorage.removeItem("gc_membership_id"); location.reload(); };
-  } else {
-    area.innerHTML = `<button class="btn" id="signInBtn">Sign in with Bungie</button>`;
-    $("#signInBtn").onclick = startOAuth;
-  }
-}
-
-// --- wire up ---------------------------------------------------------------
-$("#searchBtn").onclick = () => runSearch($("#nameInput").value);
-$("#nameInput").addEventListener("keydown", e => { if (e.key === "Enter") runSearch($("#nameInput").value); });
-$("#examples").addEventListener("click", e => {
-  if (e.target.classList.contains("chip")) { $("#nameInput").value = e.target.dataset.name; runSearch(e.target.dataset.name); }
-});
+// =========================================================================
+//  WIRE-UP
+// =========================================================================
+$("#searchBtn").onclick = ()=> runSearch($("#nameInput").value);
+$("#nameInput").addEventListener("keydown", e=>{ if(e.key==="Enter") runSearch($("#nameInput").value); });
+$("#nameInput").addEventListener("focus", showRecentPop);
+$("#nameInput").addEventListener("input", ()=>{ if(!$("#nameInput").value) showRecentPop(); else $("#recentPop").classList.remove("open"); });
+document.addEventListener("click", e=>{ if(!e.target.closest(".input-wrap")) $("#recentPop").classList.remove("open"); });
 if ($("#signInBtn")) $("#signInBtn").onclick = startOAuth;
 
-(async function init() {
-  const handled = await handleOAuthCallback();
-  if (getToken()) { renderAuthArea(null); if (!handled) loadSelf(); }
-})();
+$("#cmpAddBtn").onclick = ()=> addCmpPlayer($("#cmpInput").value);
+$("#cmpInput").addEventListener("keydown", e=>{ if(e.key==="Enter") addCmpPlayer($("#cmpInput").value); });
+$("#cmpRunBtn").onclick = runCompare;
+
+$("#tabTrack").onclick = ()=>{ $("#tabTrack").classList.add("active"); $("#tabCompare").classList.remove("active"); $("#trackView").style.display="block"; $("#compareView").style.display="none"; };
+$("#tabCompare").onclick = ()=>{ $("#tabCompare").classList.add("active"); $("#tabTrack").classList.remove("active"); $("#compareView").style.display="block"; $("#trackView").style.display="none"; };
+
+renderExamples();
+(async function init(){ const handled=await handleOAuthCallback(); if (getToken()){ renderAuthArea(null); if(!handled) loadSelf(); } })();
 </script>
-</body>
-</html>
