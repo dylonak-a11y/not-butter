@@ -286,6 +286,52 @@
   .ip-cbtn.vbtn { color:var(--accent); }
   .inv-toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:80; background:#16171a; border:1px solid var(--line); border-radius:10px; padding:10px 16px; font-size:13.5px; box-shadow:0 12px 40px rgba(0,0,0,0.6); max-width:90vw; }
   .inv-toast.ok { border-color:var(--good); color:var(--good); } .inv-toast.err { border-color:var(--bad); color:var(--bad); }
+
+  /* ---- encounter builder ---- */
+  .eb-players { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; }
+  .eb-card { width:230px; flex:none; border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:12px; }
+  .eb-chead { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .eb-name { font-weight:800; font-size:14px; }
+  .eb-sub2 { font-size:11px; color:var(--muted); margin-top:2px; }
+  .eb-x { background:transparent; border:0; color:var(--muted); font-size:18px; cursor:pointer; line-height:1; }
+  .eb-x:hover { color:var(--bad); }
+  .eb-cswitch { margin:8px 0; background:#0c1119; border:1px solid var(--line); color:var(--text); border-radius:6px; font-size:12px; padding:3px 6px; width:100%; }
+  .eb-row { display:flex; align-items:center; gap:5px; margin-top:8px; flex-wrap:wrap; }
+  .eb-rl { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); width:100%; }
+  .eb-item { position:relative; width:42px; height:42px; border-radius:4px; overflow:hidden; background:#0c1119; cursor:pointer; }
+  .eb-item.sm { width:30px; height:30px; cursor:default; }
+  .eb-item img { width:100%; height:100%; }
+  .eb-item.empty { background:#0c1119; border:1px dashed var(--line); cursor:default; }
+  .eb-item.t-exotic { box-shadow:inset 0 0 0 2px #ceae33; } .eb-item.t-legendary{ box-shadow:inset 0 0 0 2px #6b4d82; } .eb-item.t-rare{ box-shadow:inset 0 0 0 2px #5076a3; } .eb-item.t-common{ box-shadow:inset 0 0 0 2px #9aa0a6; } .eb-item.t-uncommon{ box-shadow:inset 0 0 0 2px #366f42; }
+  .eb-item.rec .eb-itemx { position:absolute; top:-1px; right:-1px; background:rgba(0,0,0,0.75); color:#fff; border:0; font-size:11px; line-height:1; padding:1px 3px; cursor:pointer; border-radius:0 0 0 4px; }
+  .eb-stats { margin-top:10px; border-top:1px solid var(--line); padding-top:8px; }
+  .eb-stat { display:grid; grid-template-columns:1fr 26px 50px; gap:6px; align-items:center; font-size:11px; margin:2px 0; }
+  .eb-stat .sn { color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .eb-stat .sv { text-align:right; font-weight:700; }
+  .eb-stat .sbar { height:6px; background:#0c0d0f; border-radius:3px; overflow:hidden; } .eb-stat .sbar>div { height:100%; background:#dfe3e8; }
+  .eb-add { width:230px; flex:none; border:1px dashed var(--line); border-radius:12px; background:rgba(255,255,255,0.01); padding:14px; }
+  .eb-add-inner { display:flex; flex-direction:column; gap:8px; align-items:stretch; }
+  .eb-plus { font-size:30px; color:var(--muted); text-align:center; }
+  .eb-add input[type=text], .eb-add input#ebInput { background:#0c1119; border:1px solid var(--line); color:var(--text); padding:8px 10px; border-radius:7px; outline:none; }
+  .eb-hint2 { font-size:11px; color:var(--muted); }
+  .eb-empty { color:var(--muted); font-size:13px; padding:10px 0; }
+  .eb-search { position:relative; max-width:460px; }
+  .eb-search input { width:100%; background:#0c1119; border:1px solid var(--line); color:var(--text); padding:11px 13px; border-radius:9px; outline:none; font-size:14px; }
+  .eb-results { position:absolute; left:0; right:0; top:calc(100% + 4px); background:var(--panel2); border:1px solid var(--line); border-radius:9px; max-height:340px; overflow:auto; z-index:25; display:none; }
+  .eb-results.open { display:block; }
+  .eb-ritem { display:flex; align-items:center; gap:9px; padding:7px 10px; cursor:pointer; font-size:13px; }
+  .eb-ritem:hover { background:var(--panel); }
+  .eb-ritem small { margin-left:auto; color:var(--muted); font-size:11px; }
+  .eb-recs { display:flex; flex-wrap:wrap; gap:16px; margin-top:12px; }
+  .eb-recgrp { border:1px solid var(--line); border-radius:10px; background:var(--bg2); padding:10px 12px; }
+  .eb-recgrp-t { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:8px; }
+  .eb-reclist { display:flex; flex-wrap:wrap; gap:6px; max-width:340px; }
+  .eb-matrix-wrap { overflow-x:auto; }
+  table.eb-matrix { border-collapse:collapse; font-size:13px; margin-top:4px; }
+  table.eb-matrix th, table.eb-matrix td { border:1px solid var(--line); padding:7px 10px; text-align:center; }
+  table.eb-matrix td.mi { text-align:left; display:flex; align-items:center; gap:8px; white-space:nowrap; }
+  table.eb-matrix th:first-child, table.eb-matrix td.mi { position:sticky; left:0; background:var(--bg); }
+  td.cell.equipped { color:var(--gold); font-weight:700; } td.cell.have, td.cell.owned { color:var(--good); } td.cell.no { color:var(--bad); opacity:0.7; } td.cell.unknown { color:var(--muted); }
+  .eb-legend { font-size:11.5px; color:var(--muted); margin-top:8px; }
 </style>
 </head>
 <body>
@@ -298,6 +344,7 @@
     </div>
     <button class="navitem active" data-page="clock"><span class="ni">&#9202;</span> Guardian Info</button>
     <button class="navitem" data-page="inventory"><span class="ni">&#127890;</span> Inventory</button>
+    <button class="navitem" data-page="eb"><span class="ni">&#9876;</span> Encounter Builder</button>
     <div class="side-foot" id="authArea"><button class="btn" id="signInBtn">Sign in with Bungie</button></div>
   </nav>
 
@@ -347,6 +394,11 @@
   <div id="page-inventory" class="page">
     <div class="page-head"><h1>Inventory</h1><p>View, move, and equip your gear — like Destiny Item Manager.</p></div>
     <div id="invBody"></div>
+  </div>
+
+  <div id="page-eb" class="page">
+    <div class="page-head"><h1>Encounter Builder</h1><p>Plan a fireteam — compare loadouts and check who owns the gear you need.</p></div>
+    <div id="ebBody"></div>
   </div>
 
   <footer>
@@ -1023,12 +1075,117 @@ $("#tabTrack").onclick=()=>{ $("#tabTrack").classList.add("active"); $("#tabComp
 $("#tabCompare").onclick=()=>{ $("#tabCompare").classList.add("active"); $("#tabTrack").classList.remove("active"); $("#compareView").style.display="block"; $("#trackView").style.display="none"; };
 
 // ---- sidebar page navigation ----
+// ===================== ENCOUNTER BUILDER ==========================
+const EB = { players:[], recs:[], defCache:{}, searchIdx:null };
+const WEAP_BK=["1498876634","2465295065","953998645"];
+const ARM_BK=["3448274439","3551918588","14239492","20886954","1585787867"];
+const SUB_BK="3284755031";
+async function ebItemDef(hash){ if(EB.defCache[hash]!==undefined) return EB.defCache[hash]; let de=null; try{ de=await bungie(`/Destiny2/Manifest/DestinyInventoryItemDefinition/${hash}/`,{ headers:authHeaders() }); }catch(e){} EB.defCache[hash]=de; return de; }
+function ebMergeColl(profile){ const coll={}; const add=(o)=>{ if(o) for(const k in o) coll[k]=o[k].state; }; add(profile.profileCollectibles&&profile.profileCollectibles.data&&profile.profileCollectibles.data.collectibles); const cc=profile.characterCollectibles&&profile.characterCollectibles.data; if(cc) Object.values(cc).forEach(x=> add(x.collectibles)); return coll; }
+function ebNormalize(profile, label){
+  const cd=(profile.characters&&profile.characters.data)||{}, eqD=(profile.characterEquipment&&profile.characterEquipment.data)||{};
+  const chars=Object.keys(cd).map(id=>({ id, classType:cd[id].classType, light:cd[id].light, stats:cd[id].stats||{}, emblemPath:cd[id].emblemPath, dateLastPlayed:cd[id].dateLastPlayed, equipped:((eqD[id]&&eqD[id].items)||[]).map(x=>({hash:String(x.itemHash), iid:x.itemInstanceId||null, bucket:String(x.bucketHash)})) }));
+  chars.sort((a,b)=> new Date(b.dateLastPlayed||0)-new Date(a.dateLastPlayed||0));
+  const equippedHashes=new Set(); chars.forEach(c=> c.equipped.forEach(e=> equippedHashes.add(e.hash)));
+  return { label, chars, charIdx:0, collectibles:ebMergeColl(profile), equippedHashes, ownedHashes:null };
+}
+async function exportInventory(){
+  if(!getToken()){ invToast("Sign in first to export.", false, true); return; }
+  invToast("Building export…");
+  try{
+    const id=getMyMembershipId(), type=getMyMembershipType();
+    const p=await bungie(`/Destiny2/${type}/Profile/${id}/?components=100,102,200,201,205,800`,{ headers:authHeaders(), cache:"no-store" });
+    const ui=(p.profile&&p.profile.data&&p.profile.data.userInfo)||{};
+    const label=(ui.bungieGlobalDisplayName||"Guardian")+(ui.bungieGlobalDisplayNameCode?("#"+String(ui.bungieGlobalDisplayNameCode).padStart(4,"0")):"");
+    const norm=ebNormalize(p, label);
+    const owned=new Set(norm.equippedHashes);
+    const ciD=p.characterInventories&&p.characterInventories.data; if(ciD) Object.values(ciD).forEach(x=> (x.items||[]).forEach(it=> owned.add(String(it.itemHash))));
+    const pv=p.profileInventory&&p.profileInventory.data; if(pv) (pv.items||[]).forEach(it=> owned.add(String(it.itemHash)));
+    const out={ v:1, exportedAt:Date.now(), label, source:"file", chars:norm.chars, collectibles:norm.collectibles, ownedHashes:[...owned] };
+    const blob=new Blob([JSON.stringify(out)],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=label.replace(/[^a-z0-9]/gi,"_")+"_loadout.json"; document.body.appendChild(a); a.click(); a.remove();
+    invToast("Exported "+label, true);
+  }catch(e){ invToast("Export failed: "+(e.message||e), false, true); }
+}
+async function renderEncounterPage(){
+  const host=$("#ebBody");
+  if(!INV.defs){ host.innerHTML=`<div class="inv-empty"><span class="spinner"></span> Loading item database…</div>`; try{ await loadManifest(()=>{}); }catch(e){ host.innerHTML=`<div class="inv-empty"><h2>Couldn't load item database</h2><p class="err">${escapeHtml(e.message)}</p></div>`; return; } }
+  ebRender();
+}
+function ebBuildSearch(){ if(EB.searchIdx) return; EB.searchIdx=[]; const d=INV.defs; for(const h in d){ const x=d[h]; if(!x.n) continue; const cat=catOf(x); if(cat!=="Weapons"&&cat!=="Armor"&&cat!=="Subclasses") continue; if(cat!=="Subclasses"&&!x.eq) continue; EB.searchIdx.push({hash:h, nl:x.n.toLowerCase(), n:x.n, ic:x.ic, t:x.t, cat, b:String(x.b)}); } }
+function ebSearch(q){ ebBuildSearch(); q=q.toLowerCase().trim(); if(!q) return []; const out=[]; for(const it of EB.searchIdx){ if(it.nl.indexOf(q)>=0){ out.push(it); if(out.length>=200) break; } } out.sort((a,b)=> (b.t-a.t) || a.n.localeCompare(b.n)); return out.slice(0,40); }
+async function ebAddById(raw){
+  if(EB.players.length>=6) throw new Error("Max 6 players.");
+  const member=await findMembership(raw);
+  const profile=await bungie(`/Destiny2/${member.membershipType}/Profile/${member.membershipId}/?components=200,205,300,305,302,304,800`,{ headers:authHeaders() });
+  if(!profile.characters||!profile.characters.data||!Object.keys(profile.characters.data).length) throw new Error("No public character data for that player.");
+  const ui=member; const label=(ui.bungieGlobalDisplayName||raw.split("#")[0])+"#"+String(ui.bungieGlobalDisplayNameCode||raw.split("#")[1]||"").padStart(4,"0");
+  const pl=ebNormalize(profile, label); pl.source="id"; pl.profile=profile; EB.players.push(pl);
+}
+function ebImport(obj){ if(EB.players.length>=6) throw new Error("Max 6 players."); if(!obj||!obj.chars) throw new Error("Not a valid loadout file."); EB.players.push({ label:obj.label||"Imported", chars:obj.chars, charIdx:0, collectibles:obj.collectibles||{}, equippedHashes:new Set([].concat.apply([],obj.chars.map(c=>(c.equipped||[]).map(e=>e.hash)))), ownedHashes:new Set(obj.ownedHashes||[]), source:"file" }); }
+async function ebAddRec(hash){ if(EB.recs.some(r=>r.hash===hash)) return; const d=INV.defs[hash]||{}; const rec={ hash, n:d.n, ic:d.ic, cat:catOf(d), b:String(d.b), t:d.t, collHash:null }; EB.recs.push(rec); ebRender(); const def=await ebItemDef(hash); if(def&&def.collectibleHash){ rec.collHash=String(def.collectibleHash); ebRender(); } }
+function ebOwn(p, recHash, collHash){
+  if(p.equippedHashes&&p.equippedHashes.has(recHash)) return {s:"equipped", t:"Equipped now"};
+  if(p.ownedHashes&&p.ownedHashes.has(recHash)) return {s:"have", t:"In vault / inventory"};
+  if(collHash && p.collectibles && (collHash in p.collectibles) && !((p.collectibles[collHash]||0)&1)) return {s:"owned", t:"Owned (Collections)"};
+  if(p.source==="id" && (!p.collectibles || !Object.keys(p.collectibles).length)) return {s:"unknown", t:"Collections private — unknown"};
+  return {s:"no", t:"Not owned"};
+}
+function ebStatsHtml(stats){ const order=Object.keys(stats).filter(h=> h!=="1935470627" && INV.statNames && INV.statNames[h]); if(!order.length) return ""; return `<div class="eb-stats">`+order.map(h=>{ const v=stats[h]; return `<div class="eb-stat"><span class="sn">${escapeHtml(INV.statNames[h])}</span><span class="sv">${v}</span><div class="sbar"><div style="width:${Math.min(100,v)}%"></div></div></div>`; }).join("")+`</div>`; }
+function ebSlot(ch, bk, big){ const e=ch.equipped.find(x=> x.bucket===bk || (INV.defs[x.hash]&&String(INV.defs[x.hash].b)===bk)); if(!e) return `<div class="eb-item empty"></div>`; const d=INV.defs[e.hash]||{}; return `<div class="eb-item ${TIER_CLASS[d.t]||"t-common"}" data-hash="${e.hash}" data-iid="${e.iid||""}" data-pl="" title="${escapeHtml(d.n||"")}">${d.ic?`<img src="${BASE+d.ic}"/>`:""}</div>`; }
+function ebPlayerCard(p, idx){
+  const ch=p.chars[p.charIdx]||p.chars[0]; if(!ch) return `<div class="eb-card"><div class="eb-chead">${escapeHtml(p.label)} <button class="eb-x" data-rm="${idx}">&times;</button></div><div class="eb-empty">No characters</div></div>`;
+  const sub=ch.equipped.find(x=> x.bucket===SUB_BK || (INV.defs[x.hash]&&String(INV.defs[x.hash].b)===SUB_BK)); const subD=sub?INV.defs[sub.hash]:null;
+  let cs=""; if(p.chars.length>1){ cs=`<select class="eb-cswitch" data-pl="${idx}">`+p.chars.map((c,i)=>`<option value="${i}"${i===p.charIdx?" selected":""}>${CLASS_NAMES[c.classType]||"Guardian"}</option>`).join("")+`</select>`; }
+  return `<div class="eb-card" data-pl="${idx}">
+    <div class="eb-chead"><div><div class="eb-name">${escapeHtml(p.label)}</div><div class="eb-sub2">${CLASS_NAMES[ch.classType]||"Guardian"} &middot; &#9733;${ch.light||0} &middot; ${p.source==="file"?"file":"public"}</div></div><button class="eb-x" data-rm="${idx}" title="Remove">&times;</button></div>
+    ${cs}
+    ${subD?`<div class="eb-row"><span class="eb-rl">Subclass</span><div class="eb-item ${TIER_CLASS[subD.t]||"t-common"}" data-hash="${sub.hash}" data-iid="${sub.iid||""}" data-pl="${idx}" title="${escapeHtml(subD.n||"")}">${subD.ic?`<img src="${BASE+subD.ic}"/>`:""}</div></div>`:""}
+    <div class="eb-row"><span class="eb-rl">Weapons</span>${WEAP_BK.map(bk=>ebSlot(ch,bk)).join("")}</div>
+    <div class="eb-row"><span class="eb-rl">Armor</span>${ARM_BK.map(bk=>ebSlot(ch,bk)).join("")}</div>
+    ${ebStatsHtml(ch.stats)}
+  </div>`;
+}
+function ebRender(){
+  const host=$("#ebBody"); if(!host) return;
+  let h=`<div class="eb-players">`+EB.players.map((p,i)=>ebPlayerCard(p,i)).join("");
+  if(EB.players.length<6) h+=`<div class="eb-add"><div class="eb-add-inner"><div class="eb-plus">+</div><input id="ebInput" placeholder="Bungie Name#1234" autocomplete="off"/><button class="btn sm gold" id="ebAddBtn">Add</button><label class="btn sm" style="cursor:pointer;">Import file<input type="file" id="ebFile" accept=".json" style="display:none"/></label>${getToken()?"":'<div class="eb-hint2">Tip: sign in &amp; use Export on the Inventory page to share your vault.</div>'}</div></div>`;
+  h+=`</div><div id="ebStatus"></div>`;
+  // recommended
+  h+=`<div class="section-title" style="margin-top:26px;">Recommended Equipment</div>`;
+  h+=`<div class="eb-search"><input id="ebSearch" placeholder="Search weapons, armor, subclasses to add…" autocomplete="off"/><div class="eb-results" id="ebResults"></div></div>`;
+  // recs grouped by category
+  const cats=[...new Set(EB.recs.map(r=>r.cat))];
+  h+=`<div class="eb-recs">`+(EB.recs.length?cats.map(cat=>{ const items=EB.recs.filter(r=>r.cat===cat); return `<div class="eb-recgrp"><div class="eb-recgrp-t">${escapeHtml(cat)}</div><div class="eb-reclist">`+items.map(r=>`<div class="eb-item ${TIER_CLASS[r.t]||"t-common"} rec" data-hash="${r.hash}" title="${escapeHtml(r.n||"")}">${r.ic?`<img src="${BASE+r.ic}"/>`:""}<button class="eb-itemx" data-rmrec="${r.hash}">&times;</button></div>`).join("")+`</div></div>`; }).join(""):`<div class="eb-empty">Search above to add items players might need.</div>`)+`</div>`;
+  // matrix
+  if(EB.recs.length && EB.players.length){
+    h+=`<div class="section-title" style="margin-top:24px;">Who Has What</div><div class="eb-matrix-wrap"><table class="eb-matrix"><thead><tr><th>Item</th>`+EB.players.map(p=>`<th>${escapeHtml(p.label.split("#")[0])}</th>`).join("")+`</tr></thead><tbody>`;
+    EB.recs.forEach(r=>{ h+=`<tr><td class="mi"><div class="eb-item sm ${TIER_CLASS[r.t]||"t-common"}" title="${escapeHtml(r.n||"")}">${r.ic?`<img src="${BASE+r.ic}"/>`:""}</div><span>${escapeHtml(r.n||"")}</span></td>`;
+      EB.players.forEach(p=>{ const o=ebOwn(p,r.hash,r.collHash); const sym=o.s==="equipped"?"&#9733;":o.s==="have"?"&#10003;":o.s==="owned"?"&#10003;":o.s==="unknown"?"?":"&#10007;"; h+=`<td class="cell ${o.s}" title="${o.t}">${sym}</td>`; }); h+=`</tr>`; });
+    h+=`</tbody></table><div class="eb-legend">&#9733; equipped &middot; &#10003; owned/in vault &middot; &#10007; not owned &middot; ? collections private</div></div>`;
+  }
+  host.innerHTML=h;
+  ebBind(host);
+}
+function ebBind(host){
+  const add=$("#ebAddBtn"), inp=$("#ebInput");
+  const doAdd=async()=>{ const v=inp.value.trim(); if(!v) return; setStatus('<span class="spinner"></span> Loading '+escapeHtml(v)+' …',false,"#ebStatus"); try{ await ebAddById(v); setStatus("",false,"#ebStatus"); ebRender(); }catch(e){ setStatus("&#9888; "+escapeHtml(e.message),true,"#ebStatus"); } };
+  if(add) add.onclick=doAdd; if(inp) inp.onkeydown=(e)=>{ if(e.key==="Enter") doAdd(); };
+  const file=$("#ebFile"); if(file) file.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ ebImport(JSON.parse(rd.result)); ebRender(); }catch(err){ setStatus("&#9888; "+escapeHtml(err.message),true,"#ebStatus"); } }; rd.readAsText(f); };
+  host.querySelectorAll("[data-rm]").forEach(b=> b.onclick=()=>{ EB.players.splice(+b.dataset.rm,1); ebRender(); });
+  host.querySelectorAll(".eb-cswitch").forEach(sel=> sel.onchange=()=>{ EB.players[+sel.dataset.pl].charIdx=+sel.value; ebRender(); });
+  host.querySelectorAll("[data-rmrec]").forEach(b=> b.onclick=(e)=>{ e.stopPropagation(); EB.recs=EB.recs.filter(r=>r.hash!==b.dataset.rmrec); ebRender(); });
+  host.querySelectorAll(".eb-item[data-hash]").forEach(it=> it.onclick=()=>{ const plIdx=it.dataset.pl; const prof = (plIdx!==""&&plIdx!=null&&EB.players[+plIdx])?EB.players[+plIdx].profile:null; showItemPopup(it.dataset.hash, it.dataset.iid, it, { profile:prof||undefined, noActions:true }); });
+  const se=$("#ebSearch"), res=$("#ebResults");
+  if(se) se.oninput=()=>{ const q=se.value; if(!q){ res.innerHTML=""; res.classList.remove("open"); return; } const r=ebSearch(q); res.innerHTML=r.map(x=>`<div class="eb-ritem" data-add="${x.hash}"><div class="eb-item sm ${TIER_CLASS[x.t]||"t-common"}">${x.ic?`<img src="${BASE+x.ic}"/>`:""}</div><span>${escapeHtml(x.n)}</span><small>${escapeHtml(x.cat)}</small></div>`).join("")||`<div class="eb-ritem">No matches</div>`; res.classList.add("open"); res.querySelectorAll("[data-add]").forEach(ri=> ri.onclick=()=>{ ebAddRec(ri.dataset.add); se.value=""; res.innerHTML=""; res.classList.remove("open"); }); };
+}
 document.querySelectorAll(".navitem").forEach(b=> b.onclick=()=>{
   document.querySelectorAll(".navitem").forEach(x=>x.classList.remove("active")); b.classList.add("active");
   const pg=b.dataset.page; stopInvPoll();
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   const t=document.getElementById("page-"+pg); if(t) t.classList.add("active");
   if(pg==="inventory") renderInventoryPage();
+  else if(pg==="eb") renderEncounterPage();
   window.scrollTo({top:0,behavior:"smooth"});
 });
 // ===================== INVENTORY (read-only viewer) ==================
@@ -1156,6 +1313,7 @@ function bindInventory(host){
   host.querySelectorAll(".inv-ctrl").forEach(sel=> sel.onchange=()=>{ const key=sel.dataset.key, k=sel.dataset.k; INV.filters[key]=INV.filters[key]||{}; INV.filters[key][k]=sel.value; const catEl=sel.closest(".inv-cat"); catEl.querySelector(".cat-body").innerHTML=catBodyHtml(catEl.dataset.cat); bindInventory(host); });
   const reload=$("#invReload"); if(reload) reload.onclick=()=> refreshInventory();
   const auto=$("#invAuto"); if(auto) auto.onchange=()=>{ INV.autoRefresh=auto.checked; startInvPoll(); };
+  const ex=$("#invExport"); if(ex) ex.onclick=exportInventory;
   startInvPoll();
   const se=$("#invSearch"); if(se) se.oninput=()=>{ const q=se.value.toLowerCase(); host.querySelectorAll(".inv-item").forEach(it=>{ it.style.display=(!q||(it.dataset.name||"").indexOf(q)>=0)?"":"none"; }); host.querySelectorAll(".inv-cat").forEach(c=>{ if(q) c.classList.add("open"); }); };
   // drag & drop move
@@ -1177,7 +1335,7 @@ function renderInventory(host, profile){
     return eq.concat(iv); }
   const colData=cols.map(c=>({col:c, items:colItems(c)}));
   let totalItems=colData.reduce((a,cd)=>a+cd.items.length,0);
-  let h=`<div class="inv-controls"><input id="invSearch" placeholder="Search ${totalItems} items…" autocomplete="off"/><label class="auto-ref"><input type="checkbox" id="invAuto" ${INV.autoRefresh!==false?"checked":""}/> Live</label><button class="btn sm" id="invReload">Reload now</button><span class="inv-note" id="invStamp"></span></div>`;
+  let h=`<div class="inv-controls"><input id="invSearch" placeholder="Search ${totalItems} items…" autocomplete="off"/><label class="auto-ref"><input type="checkbox" id="invAuto" ${INV.autoRefresh!==false?"checked":""}/> Live</label><button class="btn sm" id="invReload">Reload now</button><button class="btn sm" id="invExport" title="Export your full inventory to a file to share for the Encounter Builder">Export loadout</button><span class="inv-note" id="invStamp"></span></div>`;
   h+=`<div class="inv-grid" style="--cols:${cols.length}"><div class="inv-headrow">`;
   cols.forEach(c=>{ if(c.kind==="vault"){ h+=`<div class="inv-colhead vault" data-owner="vault"><div class="ch-name">Vault</div><div class="ch-sub">${vaultItems.length} items</div></div>`; }
     else { const ch=chars[c.key]||{}; h+=`<div class="inv-colhead" data-owner="${c.key}"><div class="ch-name" style="color:${CLASS_COLOR[ch.classType]||"var(--text)"}">${CLASS_NAMES[ch.classType]||"Guardian"}</div><div class="ch-sub">&#9733; ${ch.light||0}</div></div>`; } });
@@ -1219,10 +1377,10 @@ function showPerkTip(pe){
   tip.style.left=Math.max(6, Math.min((window.innerWidth||800)-tw-6, r.left))+"px"; tip.style.top=(r.bottom+6)+"px";
   if(pe.dataset.ph) getPlugInfo(pe.dataset.ph).then(info=>{ const d=document.getElementById("perk-tip"); if(d){ const dd=d.querySelector(".ptd"); if(dd) dd.textContent=info.de||"No description available."; } });
 }
-function showItemPopup(hash, iid, anchor){
+function showItemPopup(hash, iid, anchor, popts){ popts=popts||{};
   closeItemPopup();
   const d=INV.defs&&INV.defs[hash]; if(!d) return;
-  const prof=INV.profile||{}; const ic=prof.itemComponents||{};
+  const prof=popts.profile||INV.profile||{}; const ic=prof.itemComponents||{};
   const inst=iid&&ic.instances&&ic.instances.data&&ic.instances.data[iid];
   const power=inst&&inst.primaryStat?inst.primaryStat.value:0;
   const statsData=(iid&&ic.stats&&ic.stats.data&&ic.stats.data[iid]&&ic.stats.data[iid].stats)||{};
@@ -1237,7 +1395,7 @@ function showItemPopup(hash, iid, anchor){
   const owner = (anchor && anchor.closest && anchor.closest(".cat-col")) ? anchor.closest(".cat-col").dataset.owner : null;
   const equipped = !!(anchor && anchor.classList && anchor.classList.contains("eq"));
   let actionsHtml="";
-  if(iid && getToken() && prof.characters){
+  if(iid && getToken() && prof.characters && !popts.noActions){
     const chars=(prof.characters&&prof.characters.data)||{};
     const charIds=(prof.profile&&prof.profile.data&&prof.profile.data.characterIds)||Object.keys(chars);
     const cbtn=(cid,act)=>{ const ch=chars[cid]||{}; return `<button class="ip-cbtn" data-act="${act}" data-target="${cid}" title="${escapeHtml((CLASS_NAMES[ch.classType]||"")+" \u2605"+(ch.light||""))}">${ch.emblemPath?`<img src="${BASE+ch.emblemPath}"/>`:(CLASS_NAMES[ch.classType]||"?")}</button>`; };
