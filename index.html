@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Guardian Clock — Destiny 2 Playtime Tracker</title>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg2: #11161f;
+    --panel: #161c27;
+    --panel2: #1d2531;
+    --line: #2a3340;
+    --text: #e8ecf2;
+    --muted: #8a97a8;
+    --gold: #f5d49a;
+    --gold2: #c8a24e;
+    --accent: #5ea0ff;
+    --titan: #d14b3c;
+    --hunter: #4a90c4;
+    --warlock: #e8b84b;
+    --good: #6fcf97;
+    --bad: #e57373;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 50% -200px, #1a2230 0%, rgba(26,34,48,0) 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  /* Header */
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand .glyph {
+    width: 42px; height: 42px; flex: none;
+    display: grid; place-items: center;
+    border: 1px solid var(--gold2);
+    color: var(--gold);
+    transform: rotate(45deg);
+    border-radius: 6px;
+    background: linear-gradient(135deg, #1d2531, #11161f);
+    box-shadow: 0 0 24px rgba(245,212,154,0.12);
+  }
+  .brand .glyph span { transform: rotate(-45deg); font-weight: 700; font-size: 20px; }
+  .brand h1 { font-size: 20px; margin: 0; letter-spacing: 0.5px; }
+  .brand p { margin: 0; color: var(--muted); font-size: 12.5px; letter-spacing: 0.4px; }
+
+  .btn {
+    cursor: pointer; border: 1px solid var(--line); background: var(--panel2); color: var(--text);
+    padding: 9px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600; letter-spacing: 0.3px;
+    transition: 0.15s; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover { border-color: var(--gold2); color: var(--gold); }
+  .btn.gold { background: linear-gradient(180deg, #d8b463, #b88f3e); border-color: #d8b463; color: #1a130a; }
+  .btn.gold:hover { filter: brightness(1.08); color: #1a130a; }
+  .btn.ghost { background: transparent; }
+
+  /* Search */
+  .search-card {
+    background: linear-gradient(180deg, var(--panel), var(--bg2));
+    border: 1px solid var(--line); border-radius: 14px; padding: 22px; margin-bottom: 24px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  }
+  .search-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .search-row input {
+    flex: 1; min-width: 240px; background: #0c1119; border: 1px solid var(--line); color: var(--text);
+    padding: 13px 15px; border-radius: 10px; font-size: 15px; outline: none;
+  }
+  .search-row input:focus { border-color: var(--gold2); box-shadow: 0 0 0 3px rgba(245,212,154,0.08); }
+  .hint { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+  .examples { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { cursor: pointer; font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 999px; }
+  .chip:hover { color: var(--gold); border-color: var(--gold2); }
+
+  /* status */
+  #status { margin: 16px 0; min-height: 22px; font-size: 14px; }
+  .err { color: var(--bad); }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -3px; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Results */
+  #results { display: none; }
+  .guardian-head {
+    position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 14px;
+    background: var(--panel); margin-bottom: 22px; min-height: 96px;
+    display: flex; align-items: center; gap: 18px; padding: 18px 22px;
+  }
+  .guardian-head .bgimg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.22; }
+  .guardian-head .info { position: relative; z-index: 1; }
+  .guardian-head h2 { margin: 0; font-size: 24px; letter-spacing: 0.4px; }
+  .guardian-head .tag { color: var(--gold); font-weight: 600; }
+  .guardian-head .sub { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .platform-pill { display: inline-block; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; margin-left: 8px; vertical-align: 2px; }
+
+  .hero-stat { text-align: center; padding: 30px 16px; background: linear-gradient(180deg, var(--panel2), var(--bg2)); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 22px; }
+  .hero-stat .label { color: var(--muted); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
+  .hero-stat .big { font-size: clamp(38px, 7vw, 64px); font-weight: 800; color: var(--gold); line-height: 1.05; margin: 6px 0; text-shadow: 0 0 36px rgba(245,212,154,0.18); }
+  .hero-stat .alt { color: var(--muted); font-size: 14px; }
+
+  .grid { display: grid; gap: 16px; }
+  .cards { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); margin-bottom: 22px; }
+
+  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin: 26px 0 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+
+  .char-card { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  .char-card .emblem { height: 74px; background-size: cover; background-position: left center; display: flex; align-items: center; padding: 0 14px; gap: 12px; }
+  .char-card .emblem::before { content: ""; position: absolute; left:0; top:0; height:74px; width:100%; background: linear-gradient(90deg, rgba(0,0,0,0.55), rgba(0,0,0,0.15)); }
+  .char-card .emblem .ic { width: 46px; height: 46px; border-radius: 4px; background-size: cover; position: relative; z-index: 1; border: 1px solid rgba(255,255,255,0.15); }
+  .char-card .emblem .meta { position: relative; z-index: 1; }
+  .char-card .emblem .cls { font-weight: 700; font-size: 15px; }
+  .char-card .emblem .lvl { font-size: 12px; color: var(--gold); font-weight: 600; }
+  .char-card .body { padding: 12px 14px; }
+  .char-card .pt { font-size: 22px; font-weight: 700; }
+  .char-card .row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .bar-track { height: 6px; border-radius: 4px; background: #0c1119; overflow: hidden; margin-top: 10px; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold)); }
+
+  .modes { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); margin-bottom: 10px; }
+  .mode-card { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 14px 16px; }
+  .mode-card .m-name { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .mode-card .m-time { font-size: 20px; font-weight: 700; margin-top: 4px; }
+  .mode-card .m-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .fun { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .fun-card { border: 1px dashed var(--line); border-radius: 12px; background: rgba(255,255,255,0.015); padding: 14px 16px; }
+  .fun-card .n { font-size: 22px; font-weight: 800; color: var(--gold); }
+  .fun-card .t { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  footer { margin-top: 50px; color: var(--muted); font-size: 12px; text-align: center; }
+  details.setup { margin-top: 28px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 6px 16px; }
+  details.setup summary { cursor: pointer; font-weight: 600; padding: 10px 0; color: var(--gold); }
+  details.setup code { background: #0c1119; padding: 1px 6px; border-radius: 4px; color: var(--gold); }
+  details.setup ol { line-height: 1.7; }
+  .me-badge { font-size: 11px; background: var(--gold2); color: #1a130a; border-radius: 5px; padding: 2px 7px; font-weight: 700; letter-spacing: 0.4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="glyph"><span>&#9671;</span></div>
+      <div>
+        <h1>GUARDIAN CLOCK</h1>
+        <p>Destiny 2 time-played tracker</p>
+      </div>
+    </div>
+    <div id="authArea">
+      <button class="btn" id="signInBtn">Sign in with Bungie</button>
+    </div>
+  </header>
+
+  <div class="search-card">
+    <div class="search-row">
+      <input id="nameInput" type="text" placeholder="Bungie Name  —  e.g.  Guardian#1234" autocomplete="off" />
+      <button class="btn gold" id="searchBtn">Track Playtime</button>
+    </div>
+    <div class="hint">Enter any player's Bungie Name (the name + 4-digit code shown in-game). Their Destiny stats must be public.</div>
+    <div class="examples" id="examples">
+      <span class="chip" data-name="Cozmo#1648">Cozmo#1648</span>
+      <span class="chip" data-name="dmg04#1968">dmg04#1968</span>
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="results"></div>
+
+  <details class="setup">
+    <summary>First-time setup &amp; how to host this for friends</summary>
+    <ol>
+      <li><b>API key &amp; CORS (required to search):</b> In the <a href="https://www.bungie.net/en/Application" target="_blank">Bungie app portal</a>, open your app (ID 47366) and set <b>Origin Header</b> to <code>*</code>. This lets the tool call the API from a browser.</li>
+      <li><b>To run locally:</b> just double-click <code>index.html</code>. Searching other players works immediately.</li>
+      <li><b>To enable "Sign in with Bungie" + share it:</b> host the file (GitHub Pages is free). Then in the Bungie portal set <b>OAuth Client Type = Public</b> and <b>Redirect URL</b> to your hosted page URL (e.g. <code>https://yourname.github.io/guardian-clock/</code>). See the included <code>README.md</code> for step-by-step hosting.</li>
+    </ol>
+  </details>
+
+  <footer>
+    Not affiliated with Bungie. Data from the official Bungie.net API. &middot; Time played = seconds spent in activities (excludes orbit/social spaces).
+  </footer>
+</div>
+
+<script>
+/* =========================================================================
+   GUARDIAN CLOCK — Destiny 2 playtime tracker
+   Single-file, pure client-side. Talks directly to the Bungie.net API.
+   Extend freely: see the "EXTEND HERE" markers.
+   ========================================================================= */
+
+const API_KEY   = "420221e617684fa8be878017345ee816";
+const CLIENT_ID = "47366";
+const BASE      = "https://www.bungie.net";
+const API       = BASE + "/Platform";
+
+// --- helpers ---------------------------------------------------------------
+const $  = (s) => document.querySelector(s);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+
+const CLASS_NAMES = { 0: "Titan", 1: "Hunter", 2: "Warlock", 3: "Guardian" };
+const CLASS_COLOR = { 0: "var(--titan)", 1: "var(--hunter)", 2: "var(--warlock)", 3: "var(--gold)" };
+const PLATFORMS   = { 1: "Xbox", 2: "PlayStation", 3: "Steam", 4: "Battle.net", 5: "Stadia", 6: "Epic", 10: "Demon", 254: "BungieNext" };
+
+function authHeaders(extra) {
+  const h = { "X-API-Key": API_KEY };
+  const tok = getToken();
+  if (tok) h["Authorization"] = "Bearer " + tok;
+  return Object.assign(h, extra || {});
+}
+
+// Wrap every Bungie call: throws on ErrorCode != 1 with the human message.
+async function bungie(path, opts) {
+  const res = await fetch(API + path, opts);
+  let data;
+  try { data = await res.json(); }
+  catch (e) { throw new Error("Network/CORS error. If running as a local file, make sure the app's Origin is set to * in the Bungie portal."); }
+  if (data.ErrorCode !== undefined && data.ErrorCode !== 1) {
+    throw new Error(data.Message || ("Bungie error " + data.ErrorCode));
+  }
+  return data.Response;
+}
+
+function fmtDuration(seconds) {
+  seconds = Math.max(0, Math.floor(seconds || 0));
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const parts = [];
+  if (d) parts.push(d + "d");
+  if (h) parts.push(h + "h");
+  parts.push(m + "m");
+  return parts.join(" ");
+}
+function commas(n) { return Math.round(n).toLocaleString(); }
+
+function setStatus(html, isErr) {
+  const s = $("#status");
+  s.className = isErr ? "err" : "";
+  s.innerHTML = html || "";
+}
+
+// --- core lookup -----------------------------------------------------------
+
+// Parse "Name#1234" into { name, code }.
+function parseBungieName(raw) {
+  const m = raw.trim().match(/^(.*)#(\d{1,5})$/);
+  if (!m) return null;
+  return { name: m[1].trim(), code: parseInt(m[2], 10) };
+}
+
+// Find the best Destiny membership for a Bungie name (cross-save aware).
+async function findMembership(raw) {
+  const parsed = parseBungieName(raw);
+  if (!parsed) throw new Error('Please enter a name in the form  Name#1234');
+  const results = await bungie(`/Destiny2/SearchDestinyPlayerByBungieName/-1/`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ displayName: parsed.name, displayNameCode: parsed.code }),
+  });
+  if (!results || !results.length) throw new Error("No Destiny player found with that Bungie Name.");
+  // Prefer the cross-save primary membership if present.
+  const primary = results.find(r => r.crossSaveOverride !== 0 && r.crossSaveOverride === r.membershipType);
+  return primary || results[0];
+}
+
+// GetProfile components 100 (profile) + 200 (characters).
+async function getProfile(membershipType, membershipId) {
+  return bungie(`/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,200`, {
+    headers: authHeaders(),
+  });
+}
+
+// GetHistoricalStatsForAccount — merged + per-character + per-mode.
+async function getAccountStats(membershipType, membershipId) {
+  return bungie(`/Destiny2/${membershipType}/Account/${membershipId}/Stats/`, {
+    headers: authHeaders(),
+  });
+}
+
+// Pull a stat value out of a DestinyHistoricalStatsByPeriod.allTime block.
+function statVal(allTime, key) {
+  return allTime && allTime[key] && allTime[key].basic ? allTime[key].basic.value : 0;
+}
+
+// --- render ----------------------------------------------------------------
+
+function render(member, profile, stats) {
+  const results = $("#results");
+  results.innerHTML = "";
+  results.style.display = "block";
+
+  const characters = (profile.characters && profile.characters.data) || {};
+  const charList = Object.values(characters).sort((a, b) =>
+    new Date(b.dateLastPlayed) - new Date(a.dateLastPlayed));
+  const userInfo = (profile.profile && profile.profile.data && profile.profile.data.userInfo) || member;
+
+  // Total seconds played: prefer merged historical stats, fall back to sum of character minutes.
+  const merged = stats && stats.mergedAllCharacters && stats.mergedAllCharacters.merged;
+  let totalSeconds = merged ? statVal(merged.allTime, "secondsPlayed") : 0;
+  if (!totalSeconds) {
+    totalSeconds = charList.reduce((s, c) => s + (parseInt(c.minutesPlayedTotal, 10) || 0) * 60, 0);
+  }
+
+  // ---- Guardian header ----
+  const head = el("div", "guardian-head");
+  const banner = charList[0] && charList[0].emblemBackgroundPath;
+  if (banner) { const bg = el("div", "bgimg"); bg.style.backgroundImage = `url(${BASE + banner})`; head.appendChild(bg); }
+  const name = userInfo.bungieGlobalDisplayName || userInfo.displayName || member.bungieGlobalDisplayName || "Guardian";
+  const code = userInfo.bungieGlobalDisplayNameCode || member.bungieGlobalDisplayNameCode;
+  const isMe = !!getToken() && String(member.membershipId) === String(getMyMembershipId());
+  head.appendChild(el("div", "info",
+    `<h2>${escapeHtml(name)}${code ? `<span class="tag">#${String(code).padStart(4,"0")}</span>` : ""}
+      ${isMe ? '<span class="me-badge">YOU</span>' : ""}
+      <span class="platform-pill">${PLATFORMS[member.membershipType] || "Cross Save"}</span></h2>
+     <div class="sub">${charList.length} character${charList.length !== 1 ? "s" : ""}
+       &middot; last played ${timeAgo(profile.profile && profile.profile.data && profile.profile.data.dateLastPlayed)}</div>`));
+  results.appendChild(head);
+
+  // ---- Hero total ----
+  const hero = el("div", "hero-stat",
+    `<div class="label">Total Time Played</div>
+     <div class="big">${fmtDuration(totalSeconds)}</div>
+     <div class="alt">${commas(totalSeconds / 3600)} hours &nbsp;&middot;&nbsp; ${(totalSeconds/86400).toFixed(1)} days</div>`);
+  results.appendChild(hero);
+
+  // ---- Per-character cards ----
+  results.appendChild(el("div", "section-title", "By Character"));
+  const cards = el("div", "grid cards");
+  const charSeconds = charList.map(c => {
+    const cs = stats && stats.characters && stats.characters.find(x => x.characterId === c.characterId);
+    let sec = cs && cs.merged ? statVal(cs.merged.allTime, "secondsPlayed") : 0;
+    if (!sec) sec = (parseInt(c.minutesPlayedTotal, 10) || 0) * 60;
+    return sec;
+  });
+  const maxSec = Math.max(1, ...charSeconds);
+  charList.forEach((c, i) => {
+    const sec = charSeconds[i];
+    const card = el("div", "char-card");
+    const emblem = el("div", "emblem");
+    if (c.emblemBackgroundPath) emblem.style.backgroundImage = `url(${BASE + c.emblemBackgroundPath})`;
+    const ic = el("div", "ic"); if (c.emblemPath) ic.style.backgroundImage = `url(${BASE + c.emblemPath})`;
+    emblem.appendChild(ic);
+    emblem.appendChild(el("div", "meta",
+      `<div class="cls" style="color:${CLASS_COLOR[c.classType] || "var(--text)"}">${CLASS_NAMES[c.classType] || "Guardian"}</div>
+       <div class="lvl">&#9733; ${c.light || 0}</div>`));
+    card.appendChild(emblem);
+    card.appendChild(el("div", "body",
+      `<div class="pt">${fmtDuration(sec)}</div>
+       <div class="row"><span>${((sec/totalSeconds)*100 || 0).toFixed(1)}% of total</span><span>${timeAgo(c.dateLastPlayed)}</span></div>
+       <div class="bar-track"><div class="bar-fill" style="width:${(sec/maxSec)*100}%"></div></div>`));
+    cards.appendChild(card);
+  });
+  results.appendChild(cards);
+
+  // ---- Mode breakdown (PvE / PvP / Gambit / etc.) ----
+  const modeResults = (stats && stats.mergedAllCharacters && stats.mergedAllCharacters.results) || {};
+  const modeRows = Object.entries(modeResults)
+    .map(([key, v]) => ({ key, sec: statVal(v.allTime, "secondsPlayed"), games: statVal(v.allTime, "activitiesEntered") }))
+    .filter(r => r.sec > 0 && PRETTY_MODE[r.key])
+    .sort((a, b) => b.sec - a.sec);
+  if (modeRows.length) {
+    results.appendChild(el("div", "section-title", "By Activity Type"));
+    const modes = el("div", "grid modes");
+    modeRows.forEach(r => {
+      modes.appendChild(el("div", "mode-card",
+        `<div class="m-name">${PRETTY_MODE[r.key]}</div>
+         <div class="m-time">${fmtDuration(r.sec)}</div>
+         <div class="m-sub">${commas(r.games)} activities &middot; ${((r.sec/totalSeconds)*100).toFixed(0)}%</div>`));
+    });
+    results.appendChild(modes);
+  }
+
+  // ---- Fun comparisons ----
+  results.appendChild(el("div", "section-title", "For Perspective"));
+  const days = totalSeconds / 86400, hours = totalSeconds / 3600;
+  const fun = el("div", "grid fun");
+  [
+    [ (hours / 40).toFixed(1), "40-hour work weeks" ],
+    [ (hours / 11.4).toFixed(0), "Lord of the Rings trilogy rewatches (extended)" ],
+    [ ((days / 365) * 100).toFixed(2) + "%", "of a full year, lived in the Tower" ],
+    [ commas(hours * 1.8), "approx. estimated activities completed" ],
+  ].forEach(([n, t]) => fun.appendChild(el("div", "fun-card", `<div class="n">${n}</div><div class="t">${t}</div>`)));
+  results.appendChild(fun);
+
+  results.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+const PRETTY_MODE = {
+  allPvE: "PvE", allPvP: "Crucible (PvP)", allPvPCompetitive: "Competitive", allPvPQuickplay: "Quickplay",
+  allStrikes: "Strikes", patrol: "Patrol", raid: "Raids", story: "Story",
+  allGambit: "Gambit", gambit: "Gambit", allMayhem: "Mayhem", trials_of_osiris: "Trials of Osiris",
+  ironBanner: "Iron Banner", nightfall: "Nightfall", scoredNightfall: "Nightfall (Scored)",
+  allDoubles: "Doubles", control: "Control", survival: "Survival", elimination: "Elimination",
+};
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function timeAgo(dateStr) {
+  if (!dateStr) return "unknown";
+  const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (diff < 3600) return Math.floor(diff/60) + "m ago";
+  if (diff < 86400) return Math.floor(diff/3600) + "h ago";
+  if (diff < 2592000) return Math.floor(diff/86400) + "d ago";
+  return new Date(dateStr).toLocaleDateString();
+}
+
+// --- search flow -----------------------------------------------------------
+async function runSearch(raw) {
+  if (!raw) return;
+  $("#results").style.display = "none";
+  setStatus('<span class="spinner"></span> Searching for ' + escapeHtml(raw) + ' ...');
+  try {
+    const member = await findMembership(raw);
+    setStatus('<span class="spinner"></span> Loading profile &amp; stats ...');
+    const [profile, stats] = await Promise.all([
+      getProfile(member.membershipType, member.membershipId),
+      getAccountStats(member.membershipType, member.membershipId).catch(() => null),
+    ]);
+    if (!profile || !profile.characters || !profile.characters.data || !Object.keys(profile.characters.data).length) {
+      throw new Error("This profile has no characters or its data is private.");
+    }
+    setStatus("");
+    render(member, profile, stats);
+  } catch (e) {
+    setStatus("&#9888; " + escapeHtml(e.message), true);
+  }
+}
+
+// =========================================================================
+// OAuth (optional, for "sign in as yourself"). Works only when HOSTED on
+// https (Bungie requires a registered redirect URL). On a local file:// page
+// the button explains why it's disabled.
+// =========================================================================
+function getToken() {
+  try {
+    const t = JSON.parse(localStorage.getItem("gc_token") || "null");
+    if (t && t.access_token && Date.now() < t.expires_at) return t.access_token;
+  } catch (e) {}
+  return null;
+}
+function getMyMembershipId() { try { return localStorage.getItem("gc_membership_id"); } catch (e) { return null; } }
+
+function startOAuth() {
+  if (location.protocol === "file:") {
+    alert("Sign-in needs the tool to be hosted on a web address (https). Searching other players works fine locally.\n\nSee the Setup section to host it free on GitHub Pages.");
+    return;
+  }
+  const state = Math.random().toString(36).slice(2);
+  sessionStorage.setItem("gc_state", state);
+  location.href = `${BASE}/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}`;
+}
+
+async function handleOAuthCallback() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get("code");
+  if (!code) return false;
+  const state = params.get("state");
+  if (state && sessionStorage.getItem("gc_state") && state !== sessionStorage.getItem("gc_state")) {
+    setStatus("Sign-in failed: state mismatch.", true); return true;
+  }
+  setStatus('<span class="spinner"></span> Completing sign-in ...');
+  try {
+    const res = await fetch(API + "/App/OAuth/Token/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-API-Key": API_KEY },
+      body: new URLSearchParams({ grant_type: "authorization_code", code, client_id: CLIENT_ID }),
+    });
+    const tok = await res.json();
+    if (!tok.access_token) throw new Error(tok.error_description || "Token exchange failed.");
+    localStorage.setItem("gc_token", JSON.stringify({
+      access_token: tok.access_token,
+      expires_at: Date.now() + (tok.expires_in - 60) * 1000,
+    }));
+    // Clean the URL.
+    history.replaceState({}, "", location.pathname);
+    await loadSelf();
+  } catch (e) {
+    setStatus("&#9888; Sign-in error: " + escapeHtml(e.message), true);
+  }
+  return true;
+}
+
+async function loadSelf() {
+  try {
+    const me = await bungie("/User/GetMembershipsForCurrentUser/", { headers: authHeaders() });
+    const primaryId = me.primaryMembershipId;
+    const dm = (me.destinyMemberships || []);
+    const membership = dm.find(m => m.membershipId === primaryId) || dm[0];
+    if (!membership) throw new Error("No Destiny characters on this Bungie account.");
+    localStorage.setItem("gc_membership_id", membership.membershipId);
+    renderAuthArea(me.bungieNetUser);
+    const tag = membership.bungieGlobalDisplayName + "#" + String(membership.bungieGlobalDisplayNameCode).padStart(4,"0");
+    $("#nameInput").value = tag;
+    runSearch(tag);
+  } catch (e) {
+    setStatus("&#9888; " + escapeHtml(e.message), true);
+  }
+}
+
+function renderAuthArea(user) {
+  const area = $("#authArea");
+  if (getToken()) {
+    const nm = user ? (user.displayName || "your account") : "your account";
+    area.innerHTML = `<span style="color:var(--muted);font-size:13px;margin-right:10px;">Signed in as ${escapeHtml(nm)}</span>
+      <button class="btn ghost" id="signOutBtn">Sign out</button>`;
+    $("#signOutBtn").onclick = () => { localStorage.removeItem("gc_token"); localStorage.removeItem("gc_membership_id"); location.reload(); };
+  } else {
+    area.innerHTML = `<button class="btn" id="signInBtn">Sign in with Bungie</button>`;
+    $("#signInBtn").onclick = startOAuth;
+  }
+}
+
+// --- wire up ---------------------------------------------------------------
+$("#searchBtn").onclick = () => runSearch($("#nameInput").value);
+$("#nameInput").addEventListener("keydown", e => { if (e.key === "Enter") runSearch($("#nameInput").value); });
+$("#examples").addEventListener("click", e => {
+  if (e.target.classList.contains("chip")) { $("#nameInput").value = e.target.dataset.name; runSearch(e.target.dataset.name); }
+});
+if ($("#signInBtn")) $("#signInBtn").onclick = startOAuth;
+
+(async function init() {
+  const handled = await handleOAuthCallback();
+  if (getToken()) { renderAuthArea(null); if (!handled) loadSelf(); }
+})();
+</script>
+</body>
+</html>
