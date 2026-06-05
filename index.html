@@ -179,18 +179,71 @@
   details.setup summary { cursor: pointer; font-weight: 600; padding: 10px 0; color: var(--gold); }
   details.setup code { background: #0c1119; padding: 1px 6px; border-radius: 4px; color: var(--gold); }
   details.setup ol { line-height: 1.7; }
+
+  /* ---- app shell / sidebar ---- */
+  .app { display:flex; min-height:100vh; max-width:1320px; margin:0 auto; }
+  .sidebar { width:212px; flex:none; border-right:1px solid var(--line); padding:24px 14px; display:flex; flex-direction:column; gap:5px; }
+  .sidebar .brand { margin-bottom:18px; padding:0 4px; }
+  .navitem { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:transparent; border:1px solid transparent; color:var(--muted); padding:10px 12px; border-radius:9px; cursor:pointer; font-size:14px; font-weight:600; }
+  .navitem:hover { color:var(--text); background:var(--panel2); }
+  .navitem.active { color:var(--gold); background:var(--panel2); border-color:var(--line); }
+  .navitem .ni { font-size:16px; width:18px; text-align:center; }
+  .side-foot { margin-top:auto; padding-top:14px; }
+  .content { flex:1; min-width:0; padding:26px 26px 80px; }
+  .page { display:none; } .page.active { display:block; }
+  .page-head h1 { font-size:22px; margin:0 0 2px; letter-spacing:0.4px; } .page-head p { margin:0 0 18px; color:var(--muted); font-size:13px; }
+  @media(max-width:760px){ .app{ flex-direction:column; } .sidebar{ width:auto; flex-direction:row; flex-wrap:wrap; align-items:center; border-right:0; border-bottom:1px solid var(--line); } .sidebar .brand{ margin:0 10px 0 0; } .side-foot{ margin:0 0 0 auto; padding:0; } .content{ padding:20px 16px 60px; } }
+  /* ---- compare rank + platform dropdown ---- */
+  table.cmp td.rank, table.cmp th.rank { text-align:center; font-weight:800; color:var(--gold); width:36px; }
+  table.cmp td.rank .medal { font-size:15px; }
+  .cmp-plat { margin-left:8px; background:#0c1119; border:1px solid var(--line); color:var(--muted); border-radius:6px; font-size:11px; padding:1px 4px; cursor:pointer; }
+  .cmp-name-wrap { display:flex; align-items:center; }
+  /* ---- inventory ---- */
+  .inv-empty { border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:30px; text-align:center; }
+  .inv-empty h2 { margin:0 0 8px; font-size:18px; }
+  .inv-empty p { color:var(--muted); max-width:560px; margin:6px auto; font-size:14px; }
+
+  /* ---- inventory grid ---- */
+  .inv-controls { display:flex; gap:12px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .inv-controls input { background:#0c1119; border:1px solid var(--line); color:var(--text); padding:9px 12px; border-radius:8px; min-width:240px; outline:none; }
+  .inv-controls input:focus { border-color:var(--gold2); }
+  .inv-note { color:var(--muted); font-size:12px; }
+  .inv-headrow, .cat-cols { display:grid; grid-template-columns:repeat(var(--cols), minmax(132px,1fr)); gap:10px; }
+  .inv-headrow { position:sticky; top:0; background:var(--bg); z-index:5; padding:4px 0 8px; margin-bottom:4px; }
+  .inv-colhead { padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel); text-align:center; }
+  .inv-colhead .ch-name { font-weight:700; font-size:13px; } .inv-colhead .ch-sub { font-size:11px; color:var(--gold); }
+  .inv-colhead.vault .ch-name { color:var(--accent); }
+  .inv-cat { border-top:1px solid var(--line); }
+  .cat-head { cursor:pointer; padding:10px 4px; font-weight:700; font-size:12.5px; text-transform:uppercase; letter-spacing:1px; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .cat-head .caret { transition:0.15s; display:inline-block; color:var(--muted); } .inv-cat.open .cat-head .caret { transform:rotate(90deg); }
+  .cat-head .cat-count { color:var(--muted); font-weight:400; font-size:11px; }
+  .cat-body { display:none; padding-bottom:12px; } .inv-cat.open .cat-body { display:block; }
+  .cat-col { display:flex; flex-wrap:wrap; gap:4px; align-content:flex-start; min-height:8px; }
+  .inv-item { position:relative; width:46px; height:46px; border-radius:4px; overflow:hidden; background:#0c1119; }
+  .inv-item img { width:100%; height:100%; display:block; }
+  .inv-item.t-exotic { box-shadow:inset 0 0 0 2px #ceae33; } .inv-item.t-legendary{ box-shadow:inset 0 0 0 2px #6b4d82; } .inv-item.t-rare{ box-shadow:inset 0 0 0 2px #5076a3; } .inv-item.t-uncommon{ box-shadow:inset 0 0 0 2px #366f42; } .inv-item.t-common{ box-shadow:inset 0 0 0 2px #9aa0a6; }
+  .inv-item.eq { outline:2px solid var(--gold); outline-offset:-2px; }
+  .inv-item .pw { position:absolute; bottom:0; right:0; background:rgba(0,0,0,0.72); color:#fff; font-size:9px; line-height:1.3; padding:0 2px; }
+  .inv-item .qty { position:absolute; bottom:0; left:0; background:rgba(0,0,0,0.72); color:#fff; font-size:9px; line-height:1.3; padding:0 2px; }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="app">
 
-  <header class="top">
+  <nav class="sidebar">
     <div class="brand">
       <div class="glyph"><span>&#9671;</span></div>
-      <div><h1>GUARDIAN CLOCK</h1><p>Destiny 2 time-played tracker</p></div>
+      <div><h1>GUARDIAN</h1><p>tools</p></div>
     </div>
-    <div id="authArea"><button class="btn" id="signInBtn">Sign in with Bungie</button></div>
-  </header>
+    <button class="navitem active" data-page="clock"><span class="ni">&#9202;</span> Guardian Clock</button>
+    <button class="navitem" data-page="inventory"><span class="ni">&#127890;</span> Inventory</button>
+    <div class="side-foot" id="authArea"><button class="btn" id="signInBtn">Sign in with Bungie</button></div>
+  </nav>
+
+  <main class="content">
+
+  <div id="page-clock" class="page active">
+  <div class="page-head"><h1>Guardian Clock</h1><p>Destiny 2 time-played tracker</p></div>
 
   <div class="tabs">
     <button id="tabTrack" class="active">Track</button>
@@ -220,25 +273,26 @@
         <button class="btn" id="cmpAddBtn">+ Add</button>
         <button class="btn gold" id="cmpRunBtn">Compare</button>
       </div>
-      <div class="hint">Add up to 6 players, then Compare. Click a column header to sort, or a player's name to open their Track page. “Detailed” adds season/streak/session columns and each player's full breakdown.</div>
+      <div class="hint">Add up to 6 players, then Compare. The rank column shows each player's overall placement. Click a header to sort, a name to open their Track page, or use the platform dropdown to pick which account to compare. “Detailed” adds season/streak/session columns + full breakdowns.</div>
       <div class="cmp-players" id="cmpPlayers"></div>
+      <div class="examples" id="cmpRecent"></div>
     </div>
     <div id="cmpStatus"></div>
     <div id="cmpResults"></div>
   </div>
 
-  <details class="setup">
-    <summary>First-time setup &amp; how to host this for friends</summary>
-    <ol>
-      <li><b>API key &amp; CORS:</b> In the <a href="https://www.bungie.net/en/Application" target="_blank">Bungie app portal</a>, set <b>Origin Header</b> to <code>*</code> (or your hosted origin, scheme+host only).</li>
-      <li><b>Run locally:</b> double-click <code>index.html</code>. Searching works immediately.</li>
-      <li><b>Sign-in + sharing:</b> host on GitHub Pages, set <b>OAuth Client Type = Public</b> and <b>Redirect URL</b> to your page URL. See <code>README.md</code>.</li>
-    </ol>
-  </details>
+  </div><!-- /page-clock -->
+
+  <div id="page-inventory" class="page">
+    <div class="page-head"><h1>Inventory</h1><p>View, move, and equip your gear — like Destiny Item Manager.</p></div>
+    <div id="invBody"></div>
+  </div>
 
   <footer>
     Not affiliated with Bungie. Data from the official Bungie.net API. &middot; Activity time excludes orbit/social; “in Destiny” estimates session length including time between activities.
   </footer>
+
+  </main>
 </div>
 
 <script>
@@ -713,6 +767,9 @@ function showRecentPop(){ const pop=$("#recentPop"); const recents=getRecents();
 //  COMPARE TAB
 // =========================================================================
 let CMP_PLAYERS=[], CMP_ROWS=[], CMP_DETAILED=false, CMP_SORT={ key:"total", dir:-1 };
+function getCmpRecent(){ return loadJSON("gc_cmp_recent")||[]; }
+function saveCmpRecent(labels){ let r=getCmpRecent(); labels.slice().reverse().forEach(l=>{ r=r.filter(x=>x!==l); r.unshift(l); }); saveJSON("gc_cmp_recent", r.slice(0,12)); renderCmpRecent(); }
+function renderCmpRecent(){ const box=$("#cmpRecent"); if(!box) return; const r=getCmpRecent(); box.innerHTML=""; if(!r.length) return; box.appendChild(el("span","chip-label","Previous:")); r.forEach(lbl=>{ const c=el("span","chip"); c.innerHTML=`<span class="rn">${escapeHtml(lbl)}</span> <span class="x">&times;</span>`; c.querySelector(".rn").onclick=()=> addCmpPlayer(lbl); c.querySelector(".x").onclick=(e)=>{ e.stopPropagation(); saveJSON("gc_cmp_recent", getCmpRecent().filter(x=>x!==lbl)); renderCmpRecent(); }; box.appendChild(c); }); }
 function renderCmpPlayers(){ const box=$("#cmpPlayers"); box.innerHTML=""; CMP_PLAYERS.forEach((p,i)=>{ const c=el("span","chip"); c.innerHTML=`<span>${escapeHtml(p.raw)}</span> <span class="x">&times;</span>`; c.querySelector(".x").onclick=()=>{ CMP_PLAYERS.splice(i,1); renderCmpPlayers(); }; box.appendChild(c); }); }
 function addCmpPlayer(raw){ raw=(raw||"").trim(); if(!raw) return; if(!parseBungieName(raw)){ setStatus("&#9888; Use the form Name#1234",true,"#cmpStatus"); return; } if(CMP_PLAYERS.length>=6){ setStatus("&#9888; Max 6 players.",true,"#cmpStatus"); return; } if(CMP_PLAYERS.some(p=>p.raw.toLowerCase()===raw.toLowerCase())) return; CMP_PLAYERS.push({raw}); renderCmpPlayers(); $("#cmpInput").value=""; }
 
@@ -733,8 +790,23 @@ async function loadCmpFast(raw){
     label:(member.bungieGlobalDisplayName||"?")+"#"+String(member.bungieGlobalDisplayNameCode||"").padStart(4,"0"),
     total, activities: statVal(merged.allTime,"activitiesEntered"), byClass, mostClass: CLASS_NAMES[mostClass]||"—",
     pvpKd: rm.allPvP?statVal(rm.allPvP.allTime,"killsDeathsRatio"):0, pveKd: rm.allPvE?statVal(rm.allPvE.allTime,"killsDeathsRatio"):0,
-    light, charIds, bestSeason:null, longestStreak:null, longestSession:null };
+    light, charIds, platFilter:"all", bestSeason:null, longestStreak:null, longestSession:null };
   SESSION.cmp[member.membershipId]=row; return row;
+}
+function cmpRowMetrics(datas){
+  const stats=aggregateStats(datas.map(d=>d.stats));
+  const merged=stats.mergedAllCharacters.merged;
+  const byClass={0:0,1:0,2:0}; let light=0;
+  datas.forEach(d=>{ const cs=(d.stats&&d.stats.characters)||[]; const chs=(d.profile&&d.profile.characters&&d.profile.characters.data)||{}; Object.values(chs).forEach(c=>{ light=Math.max(light,c.light||0); const mm=cs.find(x=>x.characterId===c.characterId); let sec=mm&&mm.merged?statVal(mm.merged.allTime,"secondsPlayed"):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; if(byClass[c.classType]!==undefined) byClass[c.classType]+=sec; }); });
+  let total=statVal(merged.allTime,"secondsPlayed"); if(!total) total=Object.values(byClass).reduce((a,b)=>a+b,0);
+  const rm=stats.mergedAllCharacters.results||{}; const mostClass=Object.keys(byClass).reduce((a,b)=> byClass[b]>byClass[a]?b:a,"0");
+  return { stats, total, activities:statVal(merged.allTime,"activitiesEntered"), byClass, mostClass:CLASS_NAMES[mostClass]||"—", pvpKd: rm.allPvP?statVal(rm.allPvP.allTime,"killsDeathsRatio"):0, pveKd: rm.allPvE?statVal(rm.allPvE.allTime,"killsDeathsRatio"):0, light };
+}
+function setRowPlatform(row, filter){
+  row.platFilter=filter;
+  const datas = filter==="all" ? row.histDatas : row.histDatas.filter(d=>String(d.m.membershipId)===String(filter));
+  const m=cmpRowMetrics(datas.length?datas:row.histDatas);
+  row.stats=m.stats; row.total=m.total; row.activities=m.activities; row.byClass=m.byClass; row.mostClass=m.mostClass; row.pvpKd=m.pvpKd; row.pveKd=m.pveKd; row.light=m.light;
 }
 
 function compareColumns(detailed){
@@ -775,10 +847,16 @@ function renderCompare(){
     podHtml=`<div class="cmp-podium">`+pods.map(p=>{ const t=p.who&&tally[p.who]?tally[p.who][p.key]:0; const lbl=p.key==="top"?("category win"+(t!==1?"s":"")):p.key==="mid"?("mid finish"+(t!==1?"es":"")):("last place"+(t!==1?"s":"")); return `<div class="pod${p.first?" first":""}"><div class="pt">${p.t}</div><div class="pw">${p.who?escapeHtml(p.who):"—"}</div><div class="ps">${t} ${lbl}</div></div>`; }).join("")+`</div>`;
   }
 
-  let html=podHtml+`<div class="cmp-table-wrap"><table class="cmp"><thead><tr><th class="name">Player</th>`;
+  const rankMetrics=cols.filter(c=>c.hi==="max");
+  const scoreOf={}; rows.forEach(r=> scoreOf[r.label]=0);
+  rankMetrics.forEach(c=>{ const sorted=rows.slice().sort((a,b)=>(c.get(b)||0)-(c.get(a)||0)); sorted.forEach((r,i)=> scoreOf[r.label]+=i); });
+  const placeOf={}; rows.slice().sort((a,b)=> scoreOf[a.label]-scoreOf[b.label]).forEach((r,i)=> placeOf[r.label]=i+1);
+  let html=podHtml+`<div class="cmp-table-wrap"><table class="cmp"><thead><tr><th class="rank">#</th><th class="name">Player</th>`;
   cols.forEach(c=>{ const arrow=CMP_SORT.key===c.id?(CMP_SORT.dir<0?" ▼":" ▲"):""; html+=`<th data-col="${c.id}">${c.t}<span class="arr">${arrow}</span></th>`; });
   html+=`</tr></thead><tbody>`;
-  rows.forEach(r=>{ html+=`<tr><td class="name"><a data-label="${escapeHtml(r.label)}">${escapeHtml(r.label)}</a></td>`;
+  rows.forEach(r=>{ const place=placeOf[r.label]; const medal=place===1?"🥇":place===2?"🥈":place===3?"🥉":String(place);
+    let platSel=""; if(r.memberships&&r.memberships.length>1){ platSel=`<select class="cmp-plat" data-label="${escapeHtml(r.label)}"><option value="all"${(r.platFilter||"all")==="all"?" selected":""}>All</option>`+r.memberships.map(m=>`<option value="${m.membershipId}"${String(r.platFilter)===String(m.membershipId)?" selected":""}>${PLATFORMS[m.membershipType]||("P"+m.membershipType)}</option>`).join("")+`</select>`; }
+    html+=`<tr><td class="rank">${medal}</td><td class="name"><div class="cmp-name-wrap"><a data-label="${escapeHtml(r.label)}">${escapeHtml(r.label)}</a>${platSel}</div></td>`;
     cols.forEach(c=>{ const v=c.get(r); const best=c.hi==="max"&&maxes[c.id]>0&&v===maxes[c.id]; html+=`<td class="${best?"best":""}">${c.f(v,r)}</td>`; });
     html+=`</tr>`; });
   html+=`</tbody></table></div>`;
@@ -795,6 +873,7 @@ function renderCompare(){
   host.querySelectorAll("th[data-col]").forEach(th=> th.onclick=()=>{ const k=th.dataset.col; if(CMP_SORT.key===k) CMP_SORT.dir*=-1; else { CMP_SORT.key=k; CMP_SORT.dir=-1; } renderCompare(); });
   // name click -> track
   host.querySelectorAll("td.name a").forEach(a=> a.onclick=()=> goToTrack(a.dataset.label));
+  host.querySelectorAll("select.cmp-plat").forEach(sel=> sel.onchange=()=>{ const r=CMP_ROWS.find(x=>x.label===sel.dataset.label); if(r){ setRowPlatform(r, sel.value); renderCompare(); } });
   if(!CMP_DETAILED){ const b=$("#cmpDetailBtn"); if(b) b.onclick=runDetailedCompare; }
   else renderFullBreakdowns();
 }
@@ -809,7 +888,7 @@ async function runCompare(){
   for(let i=0;i<CMP_PLAYERS.length;i++){ setStatus(`<span class="spinner"></span> Loading ${escapeHtml(CMP_PLAYERS[i].raw)} (${i+1}/${CMP_PLAYERS.length}) …`,false,"#cmpStatus");
     try{ CMP_ROWS.push(await loadCmpFast(CMP_PLAYERS[i].raw)); }
     catch(e){ setStatus(`&#9888; ${escapeHtml(CMP_PLAYERS[i].raw)}: ${escapeHtml(e.message)}`,true,"#cmpStatus"); return; } }
-  setStatus("",false,"#cmpStatus"); renderCompare();
+  saveCmpRecent(CMP_ROWS.map(r=>r.label)); setStatus("",false,"#cmpStatus"); renderCompare();
 }
 async function runDetailedCompare(){
   const btn=$("#cmpDetailBtn"); if(btn){ btn.textContent="Loading histories…"; btn.disabled=true; }
@@ -824,6 +903,7 @@ async function runDetailedCompare(){
 // =========================================================================
 function getToken(){ try{ const t=JSON.parse(localStorage.getItem("gc_token")||"null"); if(t&&t.access_token&&Date.now()<t.expires_at) return t.access_token; }catch(e){} return null; }
 function getMyMembershipId(){ try{ return localStorage.getItem("gc_membership_id"); }catch(e){ return null; } }
+function getMyMembershipType(){ try{ return localStorage.getItem("gc_membership_type"); }catch(e){ return null; } }
 function startOAuth(){ if(location.protocol==="file:"){ alert("Sign-in needs the tool hosted on https. Searching other players works fine locally. See Setup to host on GitHub Pages."); return; } const state=Math.random().toString(36).slice(2); sessionStorage.setItem("gc_state",state); location.href=`${BASE}/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${state}`; }
 async function handleOAuthCallback(){
   const params=new URLSearchParams(location.search); const code=params.get("code"); if(!code) return false;
@@ -840,7 +920,7 @@ async function loadSelf(){
   try{ const me=await bungie("/User/GetMembershipsForCurrentUser/",{ headers:authHeaders() });
     const dm=me.destinyMemberships||[]; const membership=dm.find(m=>m.membershipId===me.primaryMembershipId)||dm[0];
     if(!membership) throw new Error("No Destiny characters on this Bungie account.");
-    localStorage.setItem("gc_membership_id",membership.membershipId); renderAuthArea(me.bungieNetUser);
+    localStorage.setItem("gc_membership_id",membership.membershipId); try{ localStorage.setItem("gc_membership_type",membership.membershipType); }catch(e){} renderAuthArea(me.bungieNetUser);
     const tag=membership.bungieGlobalDisplayName+"#"+String(membership.bungieGlobalDisplayNameCode).padStart(4,"0"); $("#nameInput").value=tag; runSearch(tag);
   }catch(e){ setStatus("&#9888; "+escapeHtml(e.message), true); }
 }
@@ -861,7 +941,108 @@ $("#cmpRunBtn").onclick=runCompare;
 $("#tabTrack").onclick=()=>{ $("#tabTrack").classList.add("active"); $("#tabCompare").classList.remove("active"); $("#trackView").style.display="block"; $("#compareView").style.display="none"; };
 $("#tabCompare").onclick=()=>{ $("#tabCompare").classList.add("active"); $("#tabTrack").classList.remove("active"); $("#compareView").style.display="block"; $("#trackView").style.display="none"; };
 
+// ---- sidebar page navigation ----
+document.querySelectorAll(".navitem").forEach(b=> b.onclick=()=>{
+  document.querySelectorAll(".navitem").forEach(x=>x.classList.remove("active")); b.classList.add("active");
+  const pg=b.dataset.page;
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  const t=document.getElementById("page-"+pg); if(t) t.classList.add("active");
+  if(pg==="inventory") renderInventoryPage();
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+// ===================== INVENTORY (read-only viewer) ==================
+const INV = { defs:null };
+const ITEMTYPE_CAT = { 3:"Weapons", 2:"Armor", 25:"Ghosts", 22:"Ships", 23:"Sparrows", 24:"Emotes", 14:"Emblems", 20:"Mods", 9:"Consumables", 10:"Materials", 8:"Engrams", 17:"Subclasses", 19:"Auras", 30:"Finishers", 29:"Artifact" };
+const CAT_ORDER = ["Weapons","Armor","Ghosts","Ships","Sparrows","Emblems","Emotes","Subclasses","Finishers","Auras","Mods","Consumables","Materials","Engrams","Artifact","Other"];
+const CAT_DEFAULT_OPEN = { Weapons:true, Armor:true };
+const TIER_CLASS = { 6:"t-exotic", 5:"t-legendary", 4:"t-rare", 3:"t-uncommon", 2:"t-common", 1:"t-common", 0:"t-common" };
+
+function idbOpen(){ return new Promise((res,rej)=>{ try{ const r=indexedDB.open("guardianclock",1); r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains("kv")) r.result.createObjectStore("kv"); }; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); }
+async function idbGet(k){ try{ const db=await idbOpen(); return await new Promise(res=>{ const t=db.transaction("kv").objectStore("kv").get(k); t.onsuccess=()=>res(t.result); t.onerror=()=>res(null); }); }catch(e){ return null; } }
+async function idbPut(k,v){ try{ const db=await idbOpen(); return await new Promise(res=>{ const t=db.transaction("kv","readwrite").objectStore("kv").put(v,k); t.onsuccess=()=>res(true); t.onerror=()=>res(false); }); }catch(e){ return false; } }
+
+async function loadManifest(onProgress){
+  if(INV.defs) return INV.defs;
+  const man=await bungie("/Destiny2/Manifest/",{ headers:authHeaders() });
+  const ver=man.version;
+  let compact=await idbGet("items_"+ver);
+  if(!compact){
+    onProgress&&onProgress("Downloading Destiny item database (one-time, ~10–30s)…");
+    const path=man.jsonWorldComponentContentPaths.en.DestinyInventoryItemDefinition;
+    const res=await fetch(BASE+path); const raw=await res.json();
+    compact={};
+    for(const h in raw){ const d=raw[h]; const dp=d.displayProperties; if(!dp||!dp.name) continue;
+      compact[h]={ n:dp.name, ic:dp.icon||"", t:(d.inventory&&d.inventory.tierType)||0, it:d.itemType||0, cl:(d.classType===undefined?3:d.classType), eq:!!d.equippable }; }
+    await idbPut("items_"+ver, compact);
+  }
+  INV.defs=compact; return compact;
+}
+async function loadInventory(){
+  const id=getMyMembershipId(), type=getMyMembershipType();
+  if(!type) throw new Error("Please sign out and sign in again to enable inventory.");
+  return bungie(`/Destiny2/${type}/Profile/${id}/?components=100,102,200,201,205,300`,{ headers:authHeaders() });
+}
+function catOf(d){ return (d&&ITEMTYPE_CAT[d.it])||"Other"; }
+function itemHtml(it, defs, instances){
+  const d=defs[it.itemHash]; if(!d) return "";
+  const inst=it.itemInstanceId&&instances[it.itemInstanceId];
+  const power=inst&&inst.primaryStat?inst.primaryStat.value:0;
+  return `<div class="inv-item ${TIER_CLASS[d.t]||"t-common"}${it.equipped?" eq":""}" data-name="${escapeHtml((d.n||"").toLowerCase())}" title="${escapeHtml(d.n)}${power?" · "+power:""}${it.equipped?" (equipped)":""}">${d.ic?`<img src="${BASE+d.ic}" loading="lazy"/>`:""}${power?`<span class="pw">${power}</span>`:""}${it.quantity>1?`<span class="qty">${it.quantity}</span>`:""}</div>`;
+}
+function renderInventory(host, profile){
+  const defs=INV.defs;
+  const chars=(profile.characters&&profile.characters.data)||{};
+  const charIds=(profile.profile&&profile.profile.data&&profile.profile.data.characterIds)||Object.keys(chars);
+  const instances=(profile.itemComponents&&profile.itemComponents.instances&&profile.itemComponents.instances.data)||{};
+  const equip=(profile.characterEquipment&&profile.characterEquipment.data)||{};
+  const inv=(profile.characterInventories&&profile.characterInventories.data)||{};
+  const vaultItems=(profile.profileInventory&&profile.profileInventory.data&&profile.profileInventory.data.items)||[];
+  const cols=charIds.map(id=>({key:id,kind:"char"})); cols.push({key:"vault",kind:"vault"});
+  function colItems(c){ if(c.kind==="vault") return vaultItems.map(x=>Object.assign({},x,{equipped:false}));
+    const eq=((equip[c.key]&&equip[c.key].items)||[]).map(x=>Object.assign({},x,{equipped:true}));
+    const iv=((inv[c.key]&&inv[c.key].items)||[]).map(x=>Object.assign({},x,{equipped:false}));
+    return eq.concat(iv); }
+  const colData=cols.map(c=>({col:c, items:colItems(c)}));
+  let totalItems=colData.reduce((a,cd)=>a+cd.items.length,0);
+  let h=`<div class="inv-controls"><input id="invSearch" placeholder="Search ${totalItems} items…" autocomplete="off"/><button class="btn sm" id="invReload">Reload</button><span class="inv-note">Read-only viewer · move &amp; equip coming next</span></div>`;
+  h+=`<div class="inv-grid" style="--cols:${cols.length}"><div class="inv-headrow">`;
+  cols.forEach(c=>{ if(c.kind==="vault"){ h+=`<div class="inv-colhead vault"><div class="ch-name">Vault</div><div class="ch-sub">${vaultItems.length} items</div></div>`; }
+    else { const ch=chars[c.key]||{}; h+=`<div class="inv-colhead"><div class="ch-name" style="color:${CLASS_COLOR[ch.classType]||"var(--text)"}">${CLASS_NAMES[ch.classType]||"Guardian"}</div><div class="ch-sub">&#9733; ${ch.light||0}</div></div>`; } });
+  h+=`</div>`;
+  CAT_ORDER.forEach(cat=>{
+    const perCol=colData.map(cd=> cd.items.filter(it=>{ const d=defs[it.itemHash]; return d && catOf(d)===cat; }));
+    const count=perCol.reduce((a,b)=>a+b.length,0); if(!count) return;
+    h+=`<div class="inv-cat ${CAT_DEFAULT_OPEN[cat]?"open":""}" data-cat="${cat}"><div class="cat-head"><span class="caret">&#9656;</span> ${cat} <span class="cat-count">${count}</span></div><div class="cat-body"><div class="cat-cols">`;
+    perCol.forEach(items=>{ h+=`<div class="cat-col">`+items.map(it=> itemHtml(it,defs,instances)).join("")+`</div>`; });
+    h+=`</div></div></div>`;
+  });
+  h+=`</div>`;
+  host.innerHTML=h;
+  host.querySelectorAll(".cat-head").forEach(head=> head.onclick=()=> head.parentElement.classList.toggle("open"));
+  const reload=$("#invReload"); if(reload) reload.onclick=()=> renderInventoryPage(true);
+  const se=$("#invSearch"); if(se) se.oninput=()=>{ const q=se.value.toLowerCase(); host.querySelectorAll(".inv-item").forEach(it=>{ it.style.display = (!q||(it.dataset.name||"").indexOf(q)>=0)?"":"none"; }); host.querySelectorAll(".inv-cat").forEach(c=>{ if(q) c.classList.add("open"); }); };
+}
+async function renderInventoryPage(force){
+  const host=$("#invBody");
+  if(!getToken()){
+    host.innerHTML=`<div class="inv-empty"><h2>Sign in to manage your inventory</h2>
+      <p>The inventory viewer works on <b>your own</b> signed-in account — it shows every character plus your vault. (Moving &amp; equipping items, like Destiny Item Manager, is the next step and needs the “Move or equip Destiny gear” permission enabled on the Bungie app.)</p>
+      <p style="margin-top:14px;"><button class="btn gold" onclick="startOAuth()">Sign in with Bungie</button></p></div>`;
+    return;
+  }
+  host.innerHTML=`<div class="inv-empty"><span class="spinner"></span> <span id="invLoad">Loading…</span></div>`;
+  try{
+    if(force) INV.defs=null;
+    await loadManifest(msg=>{ const l=$("#invLoad"); if(l) l.textContent=msg; });
+    const l=$("#invLoad"); if(l) l.textContent="Loading your characters & vault…";
+    const profile=await loadInventory();
+    if(!profile||!profile.characters||!profile.characters.data) throw new Error("Couldn't read inventory. Make sure the 'Read your Destiny 2 information' permission is enabled, then sign out and back in.");
+    renderInventory(host, profile);
+  }catch(e){ host.innerHTML=`<div class="inv-empty"><h2>Couldn't load inventory</h2><p class="err">${escapeHtml(e.message)}</p></div>`; }
+}
+
 renderExamples();
+renderCmpRecent();
 (async function init(){ const handled=await handleOAuthCallback(); if(getToken()){ renderAuthArea(null); if(!handled) loadSelf(); } })();
 </script>
 </body>
