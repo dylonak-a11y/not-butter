@@ -228,21 +228,28 @@
 
   .sub-head { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:10px 0 5px; font-weight:700; }
   .inv-item { cursor:pointer; }
-  .item-pop-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:50; }
-  .item-pop { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:51; width:350px; max-width:92vw; max-height:86vh; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.6); }
-  .item-pop .ip-head { position:relative; display:flex; gap:12px; align-items:center; padding:14px 16px; }
-  .item-pop .ip-head img { width:50px; height:50px; border-radius:4px; }
-  .item-pop .ip-head.t-exotic { background:linear-gradient(180deg,#ceae33,#a9892a); color:#1a130a; }
-  .item-pop .ip-head.t-legendary { background:#4b3661; } .item-pop .ip-head.t-rare { background:#33506f; }
-  .item-pop .ip-head.t-uncommon { background:#2f5b39; } .item-pop .ip-head.t-common { background:#54585c; }
-  .item-pop .ip-name { font-size:17px; font-weight:800; line-height:1.15; }
-  .item-pop .ip-type { font-size:12px; opacity:0.9; margin-top:2px; }
-  .item-pop .ip-x { position:absolute; top:8px; right:10px; background:transparent; border:0; color:inherit; font-size:20px; cursor:pointer; opacity:0.7; }
-  .ip-stats { padding:12px 16px; }
-  .ip-stat { display:grid; grid-template-columns:130px 32px 1fr; gap:8px; align-items:center; font-size:12px; margin:3px 0; }
-  .ip-stat .sn { color:var(--muted); } .ip-stat .sv { text-align:right; font-weight:700; }
-  .ip-stat .sbar { height:7px; background:#0c1119; border-radius:3px; overflow:hidden; } .ip-stat .sbar > div { height:100%; background:linear-gradient(90deg,var(--gold2),var(--gold)); }
-  .ip-foot { padding:11px 16px; border-top:1px solid var(--line); color:var(--muted); font-size:11.5px; }
+  .item-pop { position:fixed; z-index:51; width:300px; max-width:94vw; max-height:82vh; overflow:auto; background:#16171a; border:1px solid #000; border-radius:4px; box-shadow:0 14px 44px rgba(0,0,0,0.7); }
+  .item-pop .ip-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:11px 14px 12px; }
+  .item-pop .ip-name { font-size:16px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; line-height:1.12; }
+  .item-pop .ip-type { font-size:11px; opacity:0.88; margin-top:3px; text-transform:uppercase; letter-spacing:0.5px; }
+  .item-pop .ip-power { font-size:21px; font-weight:800; white-space:nowrap; line-height:1; text-align:right; }
+  .item-pop .ip-power small { font-size:9px; display:block; opacity:0.8; font-weight:700; margin-top:2px; }
+  .item-pop .ip-head.t-exotic { background:linear-gradient(180deg,#cdad34,#b0902b); color:#10100a; }
+  .item-pop .ip-head.t-legendary { background:linear-gradient(180deg,#564172,#48345f); color:#fff; }
+  .item-pop .ip-head.t-rare { background:linear-gradient(180deg,#4c75a6,#39597d); color:#fff; }
+  .item-pop .ip-head.t-uncommon { background:linear-gradient(180deg,#3a7d49,#2f5b39); color:#fff; }
+  .item-pop .ip-head.t-common { background:linear-gradient(180deg,#60656a,#4c5054); color:#fff; }
+  .ip-stats { padding:10px 14px; }
+  .ip-stat { display:grid; grid-template-columns:116px 26px 1fr; gap:8px; align-items:center; font-size:12px; margin:4px 0; }
+  .ip-stat .sn { color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .ip-stat .sv { text-align:right; font-weight:700; }
+  .ip-stat .sbar { height:9px; background:#0c0d0f; border-radius:2px; overflow:hidden; } .ip-stat .sbar > div { height:100%; background:#dfe3e8; }
+  .ip-perks-wrap { padding:10px 14px 12px; border-top:1px solid #2a2b2f; }
+  .ip-sec-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:8px; }
+  .ip-perks { display:flex; flex-wrap:wrap; gap:8px; }
+  .ip-perk { width:34px; height:34px; border-radius:50%; background:#0c0d0f; border:1px solid #3a3b40; overflow:hidden; display:grid; place-items:center; }
+  .ip-perk img { width:100%; height:100%; }
+  .ip-perk.txt { width:auto; height:auto; border-radius:12px; padding:4px 9px; font-size:11px; }
+  .ip-foot { padding:9px 14px; border-top:1px solid #2a2b2f; color:var(--muted); font-size:11px; }
 </style>
 </head>
 <body>
@@ -1004,7 +1011,7 @@ async function loadManifest(onProgress){
 async function loadInventory(){
   const id=getMyMembershipId(), type=getMyMembershipType();
   if(!type) throw new Error("Please sign out and sign in again to enable inventory.");
-  return bungie(`/Destiny2/${type}/Profile/${id}/?components=100,102,200,201,205,300,304`,{ headers:authHeaders() });
+  return bungie(`/Destiny2/${type}/Profile/${id}/?components=100,102,200,201,205,300,304,305`,{ headers:authHeaders() });
 }
 function catOf(d){ return (d&&ITEMTYPE_CAT[d.it])||"Other"; }
 function itemHtml(it, defs, instances){
@@ -1050,27 +1057,39 @@ function renderInventory(host, profile){
   h+=`</div>`;
   host.innerHTML=h;
   host.querySelectorAll(".cat-head").forEach(head=> head.onclick=()=> head.parentElement.classList.toggle("open"));
-  host.querySelectorAll(".inv-item").forEach(it=> it.onclick=()=> showItemPopup(it.dataset.hash, it.dataset.iid));
+  host.querySelectorAll(".inv-item").forEach(it=> it.onclick=(e)=>{ e.stopPropagation(); showItemPopup(it.dataset.hash, it.dataset.iid, it); });
   const reload=$("#invReload"); if(reload) reload.onclick=()=> renderInventoryPage(true);
   const se=$("#invSearch"); if(se) se.oninput=()=>{ const q=se.value.toLowerCase(); host.querySelectorAll(".inv-item").forEach(it=>{ it.style.display = (!q||(it.dataset.name||"").indexOf(q)>=0)?"":"none"; }); host.querySelectorAll(".inv-cat").forEach(c=>{ if(q) c.classList.add("open"); }); };
 }
-function showItemPopup(hash, iid){
+function closeItemPopup(){ const p=document.querySelector(".item-pop"); if(p) p.remove(); document.removeEventListener("mousedown", outsideClosePop, true); document.removeEventListener("keydown", escClosePop, true); }
+function outsideClosePop(e){ if(!e.target || !e.target.closest || !e.target.closest(".item-pop")) closeItemPopup(); }
+function escClosePop(e){ if(e.key==="Escape") closeItemPopup(); }
+function positionPopup(pop, anchor){
+  if(!anchor || !anchor.getBoundingClientRect){ pop.style.left="50%"; pop.style.top="90px"; pop.style.transform="translateX(-50%)"; return; }
+  const r=anchor.getBoundingClientRect(); const pw=pop.offsetWidth||300, ph=pop.offsetHeight||300, m=8;
+  let left=r.right+m; if(left+pw>window.innerWidth-6) left=r.left-pw-m; if(left<6) left=6;
+  let top=r.top; if(top+ph>window.innerHeight-6) top=Math.max(6, window.innerHeight-ph-6); if(top<6) top=6;
+  pop.style.left=left+"px"; pop.style.top=top+"px";
+}
+function showItemPopup(hash, iid, anchor){
+  closeItemPopup();
   const d=INV.defs&&INV.defs[hash]; if(!d) return;
-  const prof=INV.profile||{};
-  const ic=prof.itemComponents||{};
+  const prof=INV.profile||{}; const ic=prof.itemComponents||{};
   const inst=iid&&ic.instances&&ic.instances.data&&ic.instances.data[iid];
   const power=inst&&inst.primaryStat?inst.primaryStat.value:0;
   const statsData=(iid&&ic.stats&&ic.stats.data&&ic.stats.data[iid]&&ic.stats.data[iid].stats)||{};
+  const sockets=(iid&&ic.sockets&&ic.sockets.data&&ic.sockets.data[iid]&&ic.sockets.data[iid].sockets)||[];
   const tierName={6:"Exotic",5:"Legendary",4:"Rare",3:"Uncommon",2:"Common",1:"Common"}[d.t]||"";
   const tc=TIER_CLASS[d.t]||"t-common";
-  let statsHtml="";
-  const entries=Object.entries(statsData).filter(([sh,sv])=> sv && typeof sv.value==="number"); entries.sort((a,b)=>{ const ia=STAT_ORDER.indexOf(a[0]), ib=STAT_ORDER.indexOf(b[0]); return (ia<0?999:ia)-(ib<0?999:ib); });
-  if(entries.length){ statsHtml=`<div class="ip-stats">`+entries.map(([sh,sv])=>{ const nm=(INV.statNames&&INV.statNames[sh])||"Stat"; const val=sv.value; const bar = val>0&&val<=100 ? `<div class="sbar"><div style="width:${val}%"></div></div>` : `<div></div>`; return `<div class="ip-stat"><span class="sn">${escapeHtml(nm)}</span><span class="sv">${val}</span>${bar}</div>`; }).join("")+`</div>`; }
-  const back=el("div","item-pop-backdrop"); const pop=el("div","item-pop "+tc);
-  pop.innerHTML=`<div class="ip-head ${tc}">${d.ic?`<img src="${BASE+d.ic}"/>`:""}<div><div class="ip-name">${escapeHtml(d.n)}</div><div class="ip-type">${tierName} ${escapeHtml(d.tn||"")}${power?` &middot; &#9650; ${power}`:""}</div></div><button class="ip-x">&times;</button></div>`+statsHtml+`<div class="ip-foot">Move &amp; equip options arrive in the next update.</div>`;
-  const close=()=>{ back.remove(); pop.remove(); };
-  back.onclick=close; pop.querySelector(".ip-x").onclick=close;
-  document.body.appendChild(back); document.body.appendChild(pop);
+  let entries=Object.entries(statsData).filter(([sh,sv])=> sv && typeof sv.value==="number"); entries.sort((a,b)=>{ const ia=STAT_ORDER.indexOf(a[0]), ib=STAT_ORDER.indexOf(b[0]); return (ia<0?999:ia)-(ib<0?999:ib); });
+  const statsHtml = entries.length ? `<div class="ip-stats">`+entries.map(([sh,sv])=>{ const nm=(INV.statNames&&INV.statNames[sh])||"Stat"; const val=sv.value; const bar = val>0&&val<=100 ? `<div class="sbar"><div style="width:${val}%"></div></div>` : `<div></div>`; return `<div class="ip-stat"><span class="sn">${escapeHtml(nm)}</span><span class="sv">${val}</span>${bar}</div>`; }).join("")+`</div>` : "";
+  const perks=sockets.filter(so=> so && so.plugHash && so.isVisible!==false).map(so=> INV.defs[so.plugHash]).filter(p=> p && p.n);
+  const perksHtml = perks.length ? `<div class="ip-perks-wrap"><div class="ip-sec-label">Perks &amp; Mods</div><div class="ip-perks">`+perks.map(p=> p.ic?`<div class="ip-perk" title="${escapeHtml(p.n)}"><img src="${BASE+p.ic}" loading="lazy"/></div>`:`<div class="ip-perk txt" title="${escapeHtml(p.n)}">${escapeHtml(p.n)}</div>`).join("")+`</div></div>` : "";
+  const pop=el("div","item-pop");
+  pop.innerHTML=`<div class="ip-head ${tc}"><div class="ip-titles"><div class="ip-name">${escapeHtml(d.n)}</div><div class="ip-type">${tierName} ${escapeHtml(d.tn||"")}</div></div>${power?`<div class="ip-power">${power}<small>POWER</small></div>`:""}</div>`+statsHtml+perksHtml+`<div class="ip-foot">Move &amp; equip coming next &middot; click away to close</div>`;
+  document.body.appendChild(pop);
+  positionPopup(pop, anchor);
+  setTimeout(()=>{ document.addEventListener("mousedown", outsideClosePop, true); document.addEventListener("keydown", escClosePop, true); }, 0);
 }
 async function renderInventoryPage(force){
   const host=$("#invBody");
