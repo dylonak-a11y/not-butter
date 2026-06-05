@@ -270,6 +270,9 @@
   .pt-head .caret { color:var(--muted); transition:0.15s; display:inline-block; } .pt-wrap.open .pt-head .caret { transform:rotate(90deg); }
   .pt-head .pt-sub { color:var(--muted); font-size:12.5px; margin-left:auto; }
   .pt-body { display:none; padding:0 16px 16px; } .pt-wrap.open .pt-body { display:block; }
+
+  table.cmp td.rank { font-size:13.5px; }
+  table.cmp td.rank .rk { font-size:21px; line-height:1; }
 </style>
 </head>
 <body>
@@ -772,9 +775,9 @@ function renderTrack(container, member, profile, stats, opts){
 //  TRACK TAB
 // =========================================================================
 async function showPlayer(container, primary, filter){
-  filter=filter||"all";
   let memberships=SESSION.mem[primary.membershipId];
   if(!memberships){ memberships=await getLinkedMemberships(primary.membershipType, primary.membershipId); if(!memberships||!memberships.length) memberships=[primary]; SESSION.mem[primary.membershipId]=memberships; }
+  if(filter==null) filter=defaultMemFilter(memberships);
   const useList = filter==="all" ? memberships : memberships.filter(m=>String(m.membershipId)===String(filter));
   const datas=(await Promise.all(useList.map(m=> resolveMembershipData(m)))).filter(d=> d.stats || d.hasChars);
   if(!datas.length) throw new Error("This profile has no public characters or stats.");
@@ -791,7 +794,7 @@ async function runSearch(raw){
     setStatus('<span class="spinner"></span> Loading all platforms …');
     const label=(member.bungieGlobalDisplayName||String(raw).split("#")[0])+"#"+String(member.bungieGlobalDisplayNameCode||String(raw).split("#")[1]||"").padStart(4,"0");
     pushRecent(member,label);
-    await showPlayer($("#results"), member, "all");
+    await showPlayer($("#results"), member, null);
     setStatus("");
     $("#results").scrollIntoView({ behavior:"smooth", block:"start" });
   }catch(e){ setStatus("&#9888; "+escapeHtml(e.message), true); }
@@ -818,105 +821,113 @@ function renderCmpRecent(){ const box=$("#cmpRecent"); if(!box) return; const r=
 function renderCmpPlayers(){ const box=$("#cmpPlayers"); box.innerHTML=""; CMP_PLAYERS.forEach((p,i)=>{ const c=el("span","chip"); c.innerHTML=`<span>${escapeHtml(p.raw)}</span> <span class="x">&times;</span>`; c.querySelector(".x").onclick=()=>{ CMP_PLAYERS.splice(i,1); renderCmpPlayers(); }; box.appendChild(c); }); }
 function addCmpPlayer(raw){ raw=(raw||"").trim(); if(!raw) return; if(!parseBungieName(raw)){ setStatus("&#9888; Use the form Name#1234",true,"#cmpStatus"); return; } if(CMP_PLAYERS.length>=6){ setStatus("&#9888; Max 6 players.",true,"#cmpStatus"); return; } if(CMP_PLAYERS.some(p=>p.raw.toLowerCase()===raw.toLowerCase())) return; CMP_PLAYERS.push({raw}); renderCmpPlayers(); $("#cmpInput").value=""; }
 
+function defaultMemFilter(memberships){ if(!memberships||!memberships.length) return "all"; if(memberships.length===1) return String(memberships[0].membershipId); let best=memberships[0]; memberships.forEach(m=>{ if(new Date(m.dateLastPlayed||0) > new Date(best.dateLastPlayed||0)) best=m; }); return String(best.membershipId); }
 async function loadCmpFast(raw){
   const member=await findMembership(raw);
   if(SESSION.cmp[member.membershipId]) return SESSION.cmp[member.membershipId];
   let memberships=SESSION.mem[member.membershipId];
   if(!memberships){ memberships=await getLinkedMemberships(member.membershipType, member.membershipId); if(!memberships||!memberships.length) memberships=[member]; SESSION.mem[member.membershipId]=memberships; }
   const datas=(await Promise.all(memberships.map(m=> resolveMembershipData(m)))).filter(d=> d.stats || d.hasChars);
-  const stats=aggregateStats(datas.map(d=>d.stats));
-  const merged=stats.mergedAllCharacters.merged;
-  const byClass={0:0,1:0,2:0}; let light=0; const charIds=[];
-  datas.forEach(d=>{ const cs=(d.stats&&d.stats.characters)||[]; const chs=(d.profile&&d.profile.characters&&d.profile.characters.data)||{}; Object.values(chs).forEach(c=>{ charIds.push(c.characterId); light=Math.max(light,c.light||0); const mm=cs.find(x=>x.characterId===c.characterId); let sec=mm&&mm.merged?statVal(mm.merged.allTime,"secondsPlayed"):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; if(byClass[c.classType]!==undefined) byClass[c.classType]+=sec; }); });
-  let total=tadSec(merged.allTime); if(!total) total=Object.values(byClass).reduce((a,b)=>a+b,0);
-  const rm=stats.mergedAllCharacters.results||{};
-  const mostClass=Object.keys(byClass).reduce((a,b)=> byClass[b]>byClass[a]?b:a,"0");
-  const row={ member, memberships, histDatas:datas, profile:(datas.find(d=>d.hasChars)||{}).profile||{}, stats,
+  const defFilter=defaultMemFilter(memberships);
+  const sub = defFilter==="all" ? datas : datas.filter(d=> String(d.m.membershipId)===String(defFilter));
+  const m=cmpRowMetrics(sub.length?sub:datas);
+  const row={ member, memberships, histDatas:datas, profile:(datas.find(d=>d.hasChars)||{}).profile||{}, stats:m.stats,
     label:(member.bungieGlobalDisplayName||"?")+"#"+String(member.bungieGlobalDisplayNameCode||"").padStart(4,"0"),
-    total, activities: statVal(merged.allTime,"activitiesEntered"), byClass, mostClass: CLASS_NAMES[mostClass]||"—",
-    pvpKd: rm.allPvP?statVal(rm.allPvP.allTime,"killsDeathsRatio"):0, pveKd: rm.allPvE?statVal(rm.allPvE.allTime,"killsDeathsRatio"):0,
-    light, charIds, platFilter:"all", bestSeason:null, longestStreak:null, longestSession:null };
+    platFilter:defFilter, total:m.total, activities:m.activities, byClass:m.byClass, mostClass:m.mostClass, pvpKd:m.pvpKd, pveKd:m.pveKd, light:m.light,
+    histByMember:null, bestSeason:null, longestStreak:null, longestSession:null, longestInactive:null, activeDays:null };
   SESSION.cmp[member.membershipId]=row; return row;
 }
 function cmpRowMetrics(datas){
   const stats=aggregateStats(datas.map(d=>d.stats));
   const merged=stats.mergedAllCharacters.merged;
   const byClass={0:0,1:0,2:0}; let light=0;
-  datas.forEach(d=>{ const cs=(d.stats&&d.stats.characters)||[]; const chs=(d.profile&&d.profile.characters&&d.profile.characters.data)||{}; Object.values(chs).forEach(c=>{ light=Math.max(light,c.light||0); const mm=cs.find(x=>x.characterId===c.characterId); let sec=mm&&mm.merged?statVal(mm.merged.allTime,"secondsPlayed"):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; if(byClass[c.classType]!==undefined) byClass[c.classType]+=sec; }); });
+  datas.forEach(d=>{ const cs=(d.stats&&d.stats.characters)||[]; const chs=(d.profile&&d.profile.characters&&d.profile.characters.data)||{}; Object.values(chs).forEach(c=>{ light=Math.max(light,c.light||0); const mm=cs.find(x=>x.characterId===c.characterId); let sec=mm&&mm.merged?tadSec(mm.merged.allTime):0; if(!sec) sec=(parseInt(c.minutesPlayedTotal,10)||0)*60; if(byClass[c.classType]!==undefined) byClass[c.classType]+=sec; }); });
   let total=tadSec(merged.allTime); if(!total) total=Object.values(byClass).reduce((a,b)=>a+b,0);
   const rm=stats.mergedAllCharacters.results||{}; const mostClass=Object.keys(byClass).reduce((a,b)=> byClass[b]>byClass[a]?b:a,"0");
   return { stats, total, activities:statVal(merged.allTime,"activitiesEntered"), byClass, mostClass:CLASS_NAMES[mostClass]||"—", pvpKd: rm.allPvP?statVal(rm.allPvP.allTime,"killsDeathsRatio"):0, pveKd: rm.allPvE?statVal(rm.allPvE.allTime,"killsDeathsRatio"):0, light };
+}
+function computeDetailed(row){
+  if(!row.histByMember) return;
+  const ids = row.platFilter==="all" ? Object.keys(row.histByMember) : [String(row.platFilter)];
+  const hist=mergeHistories(ids.map(id=> row.histByMember[id]).filter(Boolean));
+  const st=computeStreaks(hist.days);
+  row.longestStreak=st?st.longestActive:0; row.longestInactive=st?st.longestInactive:0; row.activeDays=st?st.activeDays:0;
+  row.longestSession=hist.maxSession; row.bestSeason=mostPlayed(hist.days,SEASONS);
 }
 function setRowPlatform(row, filter){
   row.platFilter=filter;
   const datas = filter==="all" ? row.histDatas : row.histDatas.filter(d=>String(d.m.membershipId)===String(filter));
   const m=cmpRowMetrics(datas.length?datas:row.histDatas);
   row.stats=m.stats; row.total=m.total; row.activities=m.activities; row.byClass=m.byClass; row.mostClass=m.mostClass; row.pvpKd=m.pvpKd; row.pveKd=m.pveKd; row.light=m.light;
+  if(row.histByMember) computeDetailed(row);
 }
 
-function compareColumns(detailed){
+function rankingColumns(detailed){
   const cols=[
     { id:"total", t:"Total Time", get:r=>r.total, f:v=>fmtDuration(v), hi:"max" },
     { id:"activities", t:"Activities", get:r=>r.activities, f:v=>v?commas(v):"—", hi:"max" },
-    { id:"mostClass", t:"Top Class", get:r=>r.mostClass, f:v=>v, hi:null },
     { id:"pvpKd", t:"PvP K/D", get:r=>r.pvpKd, f:v=>v?v.toFixed(2):"—", hi:"max" },
     { id:"pveKd", t:"PvE K/D", get:r=>r.pveKd, f:v=>v?v.toFixed(2):"—", hi:"max" },
     { id:"light", t:"Power", get:r=>r.light, f:v=>v||"—", hi:"max" },
   ];
   if(detailed){
-    cols.push({ id:"bestSeason", t:"Top Season", get:r=>r.bestSeason?r.bestSeason.sec:0, f:(v,r)=> r.bestSeason?r.bestSeason.name.replace(/^Season of |^Season: |^Episode: /,""):"—", hi:null });
     cols.push({ id:"longestStreak", t:"Best Streak", get:r=>r.longestStreak||0, f:v=>v?v+"d":"—", hi:"max" });
     cols.push({ id:"longestSession", t:"Long Session", get:r=>r.longestSession||0, f:v=>v?fmtDuration(v):"—", hi:"max" });
   }
   return cols;
 }
+function miscColumns(detailed){
+  const cols=[ { id:"mostClass", t:"Top Class", get:r=>r.mostClass, f:v=>v } ];
+  if(detailed){
+    cols.push({ id:"bestSeason", t:"Top Season", get:r=> r.bestSeason?r.bestSeason.name.replace(/^Season of |^Season: |^Episode: /,""):"—", f:v=>v });
+    cols.push({ id:"activeDays", t:"Days Played", get:r=> r.activeDays?commas(r.activeDays):"—", f:v=>v });
+    cols.push({ id:"longestInactive", t:"Longest Break", get:r=> r.longestInactive?r.longestInactive+"d":"—", f:v=>v });
+  }
+  return cols;
+}
+function cmpPodium(rows, rankMetrics){
+  if(rows.length<3) return "";
+  const tally={}; rows.forEach(r=> tally[r.label]={top:0,mid:0,last:0});
+  rankMetrics.forEach(c=>{ const ranked=rows.slice().filter(r=>(c.get(r)||0)>0).sort((a,b)=>(c.get(b)||0)-(c.get(a)||0)); const n=ranked.length; ranked.forEach((r,i)=>{ if(i===0) tally[r.label].top++; else if(i===n-1) tally[r.label].last++; else tally[r.label].mid++; }); });
+  const pick=(key,exclude)=>{ let best=null; rows.forEach(r=>{ if(exclude.indexOf(r.label)>=0) return; if(best===null||tally[r.label][key]>tally[best][key]) best=r.label; }); return best; };
+  const bestP=pick("top",[]); const midP=pick("mid",[bestP]); const lastP=pick("last",[bestP,midP].filter(Boolean));
+  const pods=[ {t:"🏆 Best Guardian", who:bestP, key:"top", first:true}, {t:"🥈 Most Mid", who:midP, key:"mid"}, {t:"🥉 Participation Trophy", who:lastP, key:"last"} ];
+  return `<div class="cmp-podium">`+pods.map(p=>{ const t=p.who&&tally[p.who]?tally[p.who][p.key]:0; const lbl=p.key==="top"?("category win"+(t!==1?"s":"")):p.key==="mid"?("mid finish"+(t!==1?"es":"")):("last place"+(t!==1?"s":"")); return `<div class="pod${p.first?" first":""}"><div class="pt">${p.t}</div><div class="pw">${p.who?escapeHtml(p.who):"—"}</div><div class="ps">${t} ${lbl}</div></div>`; }).join("")+`</div>`;
+}
+function cmpTableHtml(cols, rows, placeOf, maxes, sortable, showPlat){
+  let html=`<div class="cmp-table-wrap"><table class="cmp"><thead><tr><th class="rank">#</th><th class="name">Player</th>`;
+  cols.forEach(c=>{ const arrow=sortable&&CMP_SORT.key===c.id?(CMP_SORT.dir<0?" ▼":" ▲"):""; html+=`<th ${sortable&&c.hi==="max"?`data-col="${c.id}"`:""}>${c.t}<span class="arr">${arrow}</span></th>`; });
+  html+=`</tr></thead><tbody>`;
+  rows.forEach(r=>{ const place=placeOf[r.label]; const medal=place===1?"🥇":place===2?"🥈":place===3?"🥉":String(place);
+    let platSel=""; if(showPlat && r.memberships&&r.memberships.length>1){ platSel=`<select class="cmp-plat" data-label="${escapeHtml(r.label)}"><option value="all"${(r.platFilter||"all")==="all"?" selected":""}>All</option>`+r.memberships.map(m=>`<option value="${m.membershipId}"${String(r.platFilter)===String(m.membershipId)?" selected":""}>${PLATFORMS[m.membershipType]||("P"+m.membershipType)}</option>`).join("")+`</select>`; }
+    html+=`<tr><td class="rank"><span class="rk">${medal}</span></td><td class="name"><div class="cmp-name-wrap"><a data-label="${escapeHtml(r.label)}">${escapeHtml(r.label)}</a>${platSel}</div></td>`;
+    cols.forEach(c=>{ const v=c.get(r); const best=c.hi==="max"&&maxes&&maxes[c.id]>0&&v===maxes[c.id]; html+=`<td class="${best?"best":""}">${c.f(v,r)}</td>`; });
+    html+=`</tr>`; });
+  return html+`</tbody></table></div>`;
+}
 function renderCompare(){
   const host=$("#cmpResults"); host.style.display="block";
-  const cols=compareColumns(CMP_DETAILED);
-  // sort
-  const sortCol=cols.find(c=>c.id===CMP_SORT.key)||cols[0];
-  const rows=CMP_ROWS.slice().sort((a,b)=>{ let va=sortCol.get(a), vb=sortCol.get(b); if(typeof va==="string"){ return CMP_SORT.dir*va.localeCompare(vb); } return CMP_SORT.dir*((va||0)-(vb||0)); });
-  const maxes={}; cols.forEach(c=>{ if(c.hi==="max") maxes[c.id]=Math.max(...rows.map(r=>c.get(r)||0)); });
-
-  // Top-3 podium: rank players across all numeric columns
-  let podHtml="";
-  if(rows.length>=3){
-    const numCols=cols.filter(c=>c.hi==="max");
-    const tally={}; rows.forEach(r=> tally[r.label]={top:0,mid:0,last:0});
-    numCols.forEach(c=>{ const ranked=rows.slice().filter(r=>(c.get(r)||0)>0).sort((a,b)=>(c.get(b)||0)-(c.get(a)||0)); const n=ranked.length; ranked.forEach((r,i)=>{ if(i===0) tally[r.label].top++; else if(i===n-1) tally[r.label].last++; else tally[r.label].mid++; }); });
-    const pick=(key,exclude)=>{ let best=null; rows.forEach(r=>{ if(exclude.indexOf(r.label)>=0) return; if(best===null||tally[r.label][key]>tally[best][key]) best=r.label; }); return best; };
-    const bestP=pick("top",[]); const midP=pick("mid",[bestP]); const lastP=pick("last",[bestP,midP].filter(Boolean));
-    const pods=[ {t:"🏆 Best Guardian", who:bestP, key:"top", first:true},
-      {t:"🥈 Most Mid", who:midP, key:"mid"},
-      {t:"🥉 Participation Trophy", who:lastP, key:"last"} ];
-    podHtml=`<div class="cmp-podium">`+pods.map(p=>{ const t=p.who&&tally[p.who]?tally[p.who][p.key]:0; const lbl=p.key==="top"?("category win"+(t!==1?"s":"")):p.key==="mid"?("mid finish"+(t!==1?"es":"")):("last place"+(t!==1?"s":"")); return `<div class="pod${p.first?" first":""}"><div class="pt">${p.t}</div><div class="pw">${p.who?escapeHtml(p.who):"—"}</div><div class="ps">${t} ${lbl}</div></div>`; }).join("")+`</div>`;
-  }
-
-  const rankMetrics=cols.filter(c=>c.hi==="max");
+  const rankCols=rankingColumns(CMP_DETAILED), miscCols=miscColumns(CMP_DETAILED);
+  const sortCol=rankCols.find(c=>c.id===CMP_SORT.key)||rankCols[0];
+  const rows=CMP_ROWS.slice().sort((a,b)=>{ let va=sortCol.get(a), vb=sortCol.get(b); if(typeof va==="string") return CMP_SORT.dir*va.localeCompare(vb); return CMP_SORT.dir*((va||0)-(vb||0)); });
+  const maxes={}; rankCols.forEach(c=>{ if(c.hi==="max") maxes[c.id]=Math.max(...rows.map(r=>c.get(r)||0)); });
+  const rankMetrics=rankCols.filter(c=>c.hi==="max");
   const scoreOf={}; rows.forEach(r=> scoreOf[r.label]=0);
   rankMetrics.forEach(c=>{ const sorted=rows.slice().sort((a,b)=>(c.get(b)||0)-(c.get(a)||0)); sorted.forEach((r,i)=> scoreOf[r.label]+=i); });
   const placeOf={}; rows.slice().sort((a,b)=> scoreOf[a.label]-scoreOf[b.label]).forEach((r,i)=> placeOf[r.label]=i+1);
-  let html=podHtml+`<div class="cmp-table-wrap"><table class="cmp"><thead><tr><th class="rank">#</th><th class="name">Player</th>`;
-  cols.forEach(c=>{ const arrow=CMP_SORT.key===c.id?(CMP_SORT.dir<0?" ▼":" ▲"):""; html+=`<th data-col="${c.id}">${c.t}<span class="arr">${arrow}</span></th>`; });
-  html+=`</tr></thead><tbody>`;
-  rows.forEach(r=>{ const place=placeOf[r.label]; const medal=place===1?"🥇":place===2?"🥈":place===3?"🥉":String(place);
-    let platSel=""; if(r.memberships&&r.memberships.length>1){ platSel=`<select class="cmp-plat" data-label="${escapeHtml(r.label)}"><option value="all"${(r.platFilter||"all")==="all"?" selected":""}>All</option>`+r.memberships.map(m=>`<option value="${m.membershipId}"${String(r.platFilter)===String(m.membershipId)?" selected":""}>${PLATFORMS[m.membershipType]||("P"+m.membershipType)}</option>`).join("")+`</select>`; }
-    html+=`<tr><td class="rank">${medal}</td><td class="name"><div class="cmp-name-wrap"><a data-label="${escapeHtml(r.label)}">${escapeHtml(r.label)}</a>${platSel}</div></td>`;
-    cols.forEach(c=>{ const v=c.get(r); const best=c.hi==="max"&&maxes[c.id]>0&&v===maxes[c.id]; html+=`<td class="${best?"best":""}">${c.f(v,r)}</td>`; });
-    html+=`</tr>`; });
-  html+=`</tbody></table></div>`;
 
+  let html=cmpPodium(rows, rankMetrics);
+  html+=`<div class="section-title" style="margin-top:8px;">Rankings <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted);font-size:11px;">— rank = combined standing across these columns</span></div>`;
+  html+=cmpTableHtml(rankCols, rows, placeOf, maxes, true, true);
   const maxT=Math.max(...rows.map(r=>r.total));
   html+=`<div class="cmp-bars"><div class="section-title" style="margin-top:24px;">Total Time</div>`;
   rows.slice().sort((a,b)=>b.total-a.total).forEach(r=>{ html+=`<div class="cmp-bar-row"><div>${escapeHtml(r.label)}</div><div class="bt"><div class="bf" style="width:${(r.total/maxT*100).toFixed(1)}%"></div></div><div>${fmtDuration(r.total)}</div></div>`; });
   html+=`</div>`;
-  if(!CMP_DETAILED) html+=`<div style="margin-top:18px;"><button class="btn" id="cmpDetailBtn">Run detailed comparison (season/streak/session + full breakdowns)</button></div>`;
+  html+=`<div class="section-title" style="margin-top:24px;">Other Info</div>`+cmpTableHtml(miscCols, rows, placeOf, null, false, false);
+  if(!CMP_DETAILED) html+=`<div style="margin-top:18px;"><button class="btn" id="cmpDetailBtn">Run detailed comparison (adds streaks, sessions, seasons + full breakdowns)</button></div>`;
   html+=`<div class="cmp-full" id="cmpFull"></div>`;
   host.innerHTML=html;
-
-  // header sort handlers
   host.querySelectorAll("th[data-col]").forEach(th=> th.onclick=()=>{ const k=th.dataset.col; if(CMP_SORT.key===k) CMP_SORT.dir*=-1; else { CMP_SORT.key=k; CMP_SORT.dir=-1; } renderCompare(); });
-  // name click -> track
   host.querySelectorAll("td.name a").forEach(a=> a.onclick=()=> goToTrack(a.dataset.label));
   host.querySelectorAll("select.cmp-plat").forEach(sel=> sel.onchange=()=>{ const r=CMP_ROWS.find(x=>x.label===sel.dataset.label); if(r){ setRowPlatform(r, sel.value); renderCompare(); } });
   if(!CMP_DETAILED){ const b=$("#cmpDetailBtn"); if(b) b.onclick=runDetailedCompare; }
@@ -930,7 +941,8 @@ function renderFullBreakdowns(){
     head.innerHTML=`<span class="caret">&#9656;</span> <b>${escapeHtml(r.label)}</b> <span class="pt-sub">${fmtDuration(r.total)} &middot; ${commas(r.activities)} activities</span>`;
     const body=el("div","pt-body"); wrap.appendChild(head); wrap.appendChild(body); full.appendChild(wrap);
     let rendered=false;
-    head.onclick=()=>{ wrap.classList.toggle("open"); if(wrap.classList.contains("open") && !rendered){ rendered=true; renderTrack(body, r.member, r.profile, r.stats, { memberships:r.memberships, filter:"all", datas:r.histDatas }); } };
+    head.onclick=()=>{ const open=!wrap.classList.contains("open"); wrap.classList.toggle("open",open); body.style.display=open?"block":"none";
+      if(open && !rendered){ rendered=true; const sub=(r.platFilter&&r.platFilter!=="all")?r.histDatas.filter(d=>String(d.m.membershipId)===String(r.platFilter)):r.histDatas; renderTrack(body, r.member, r.profile, r.stats, { memberships:r.memberships, filter:r.platFilter||"all", datas:sub.length?sub:r.histDatas }); } };
   });
 }
 async function runCompare(){
@@ -944,7 +956,7 @@ async function runCompare(){
 async function runDetailedCompare(){
   const btn=$("#cmpDetailBtn"); if(btn){ btn.textContent="Loading histories…"; btn.disabled=true; }
   for(let i=0;i<CMP_ROWS.length;i++){ const r=CMP_ROWS[i]; setStatus(`<span class="spinner"></span> Activity history for ${escapeHtml(r.label)} (${i+1}/${CMP_ROWS.length}) …`,false,"#cmpStatus");
-    try{ const hists=await Promise.all((r.histDatas||[]).map(d=> fetchHistory(d.m.membershipType, d.m.membershipId, d.charIds, ()=>{}))); const hist=mergeHistories(hists); const st=computeStreaks(hist.days); r.longestStreak=st?st.longestActive:0; r.longestSession=hist.maxSession; r.bestSeason=mostPlayed(hist.days,SEASONS); }
+    try{ r.histByMember={}; for(const d of (r.histDatas||[])){ r.histByMember[d.m.membershipId]=await fetchHistory(d.m.membershipType, d.m.membershipId, d.charIds, ()=>{}); } computeDetailed(r); }
     catch(e){ r.longestStreak=0; r.longestSession=0; r.bestSeason=null; } }
   setStatus("",false,"#cmpStatus"); CMP_DETAILED=true; renderCompare();
 }
