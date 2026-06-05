@@ -1034,12 +1034,20 @@ document.querySelectorAll(".navitem").forEach(b=> b.onclick=()=>{
 // ===================== INVENTORY (read-only viewer) ==================
 const INV = { defs:null };
 const ITEMTYPE_CAT = { 3:"Weapons", 2:"Armor", 25:"Ghosts", 22:"Ships", 23:"Sparrows", 24:"Emotes", 14:"Emblems", 20:"Mods", 9:"Consumables", 10:"Materials", 8:"Engrams", 17:"Subclasses", 19:"Auras", 30:"Finishers", 29:"Artifact" };
-const CAT_ORDER = ["Weapons","Armor","Ghosts","Ships","Sparrows","Emblems","Emotes","Subclasses","Finishers","Auras","Mods","Consumables","Materials","Engrams","Artifact","Other"];
+// Reliable categorization by definition bucket (DIM-style); falls back to itemType.
+const BUCKET_CAT = {
+  "1498876634":"Weapons","2465295065":"Weapons","953998645":"Weapons",
+  "3448274439":"Armor","3551918588":"Armor","14239492":"Armor","20886954":"Armor","1585787867":"Armor",
+  "3284755031":"Subclasses","4023194814":"Ghosts","2025709351":"Sparrows","284967655":"Ships",
+  "4274335291":"Emblems","3683254069":"Finishers","4292445962":"Clan Banner",
+  "1469714392":"Consumables","3313201758":"Mods","1345459588":"Quests","375726501":"Engrams","215593132":"Postmaster"
+};
+const CAT_ORDER = ["Weapons","Armor","Subclasses","Ghosts","Sparrows","Ships","Emblems","Emotes","Finishers","Clan Banner","Mods","Consumables","Materials","Engrams","Quests","Postmaster","Auras","Artifact","Other"];
 const CAT_DEFAULT_OPEN = { Weapons:true, Armor:true };
-const AMMO_SUBS = [ {n:"Primary",f:d=>d.am===1}, {n:"Special",f:d=>d.am===2}, {n:"Heavy",f:d=>d.am===3} ];
+const WEAPON_SUBS = [ {n:"Kinetic Weapons",h:"1498876634"}, {n:"Energy Weapons",h:"2465295065"}, {n:"Power Weapons",h:"953998645"} ].map(x=>({ n:x.n, f:d=>String(d.b)===x.h }));
 const ARMOR_SUBS = [ {n:"Helmet",h:"3448274439"}, {n:"Gauntlets",h:"3551918588"}, {n:"Chest Armor",h:"14239492"}, {n:"Leg Armor",h:"20886954"}, {n:"Class Item",h:"1585787867"} ].map(x=>({ n:x.n, f:d=>String(d.b)===x.h }));
 const STAT_ORDER = ["4284893193","2961396640","447667954","3614673599","2523465841","4043523819","1240592695","1591432999","155624089","943549884","4188031367","3555269338","2714457168","1345609583","2715839340","925767036","3871231066","2996146975","392767087","1943323491","1735777505","144602215","4244567218"];
-const CAT_SUBS = { Weapons:AMMO_SUBS, Armor:ARMOR_SUBS };
+const CAT_SUBS = { Weapons:WEAPON_SUBS, Armor:ARMOR_SUBS };
 const TIER_CLASS = { 6:"t-exotic", 5:"t-legendary", 4:"t-rare", 3:"t-uncommon", 2:"t-common", 1:"t-common", 0:"t-common" };
 
 function idbOpen(){ return new Promise((res,rej)=>{ try{ const r=indexedDB.open("guardianclock",1); r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains("kv")) r.result.createObjectStore("kv"); }; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); }
@@ -1069,7 +1077,7 @@ async function loadManifest(onProgress){
 async function loadInventory(){
   const id=getMyMembershipId(), type=getMyMembershipType();
   if(!type) throw new Error("Please sign out and sign in again to enable inventory.");
-  return bungie(`/Destiny2/${type}/Profile/${id}/?components=100,102,200,201,205,300,304,305`,{ headers:authHeaders() });
+  return bungie(`/Destiny2/${type}/Profile/${id}/?components=100,102,200,201,205,300,304,305`,{ headers:authHeaders(), cache:"no-store" });
 }
 async function transferItem(hash, itemId, charId, toVault, quantity){
   return bungie("/Destiny2/Actions/Items/TransferItem/", { method:"POST", headers:authHeaders({"Content-Type":"application/json"}), body:JSON.stringify({ itemReferenceHash:Number(hash), stackSize:Number(quantity)||1, transferToVault:!!toVault, itemId:String(itemId), characterId:String(charId), membershipType:Number(getMyMembershipType()) }) });
@@ -1089,7 +1097,7 @@ async function moveItem(o){
   if(o.equip) await equipItemApi(o.iid,o.target);
 }
 function invToast(msg, ok, err){ let t=document.getElementById("inv-toast"); if(!t){ t=el("div"); t.id="inv-toast"; document.body.appendChild(t); } t.className="inv-toast"+(ok?" ok":"")+(err?" err":""); t.innerHTML=(ok?"&#10003; ":err?"&#9888; ":'<span class="spinner"></span> ')+escapeHtml(String(msg)); clearTimeout(INV.toastT); if(ok||err) INV.toastT=setTimeout(()=>{ const e=document.getElementById("inv-toast"); if(e) e.remove(); }, 2800); }
-function catOf(d){ return (d&&ITEMTYPE_CAT[d.it])||"Other"; }
+function catOf(d){ if(!d) return "Other"; if(d.b && BUCKET_CAT[d.b]) return BUCKET_CAT[d.b]; return ITEMTYPE_CAT[d.it]||"Other"; }
 function itemHtml(it, defs, instances){
   const d=defs[it.itemHash]; if(!d) return "";
   const inst=it.itemInstanceId&&instances[it.itemInstanceId];
@@ -1152,7 +1160,7 @@ function bindInventory(host){
   const se=$("#invSearch"); if(se) se.oninput=()=>{ const q=se.value.toLowerCase(); host.querySelectorAll(".inv-item").forEach(it=>{ it.style.display=(!q||(it.dataset.name||"").indexOf(q)>=0)?"":"none"; }); host.querySelectorAll(".inv-cat").forEach(c=>{ if(q) c.classList.add("open"); }); };
   // drag & drop move
   host.querySelectorAll(".inv-item[draggable=true]").forEach(it=> it.ondragstart=(e)=>{ const col=it.closest(".cat-col"); INV.drag={ hash:it.dataset.hash, iid:it.dataset.iid, owner:col?col.dataset.owner:null, equipped:it.classList.contains("eq"), quantity:1 }; try{ e.dataTransfer.setData("text/plain", it.dataset.iid||""); e.dataTransfer.effectAllowed="move"; }catch(x){} });
-  host.querySelectorAll("[data-owner]").forEach(z=>{ z.ondragover=(e)=>{ if(INV.drag){ e.preventDefault(); z.classList.add("drop-hover"); } }; z.ondragleave=()=> z.classList.remove("drop-hover"); z.ondrop=async(e)=>{ e.preventDefault(); z.classList.remove("drop-hover"); const dd=INV.drag; INV.drag=null; if(!dd||!dd.iid) return; const target=z.dataset.owner; if(!target||target===dd.owner) return; invToast("Moving…"); try{ await moveItem({ hash:dd.hash, iid:dd.iid, owner:dd.owner, equipped:dd.equipped, target, equip:false, quantity:dd.quantity }); invToast("Moved", true); refreshInventory(); }catch(err){ invToast(err.message||"Move failed", false, true); } }; });
+  host.querySelectorAll("[data-owner]").forEach(z=>{ z.ondragover=(e)=>{ if(INV.drag){ e.preventDefault(); z.classList.add("drop-hover"); } }; z.ondragleave=()=> z.classList.remove("drop-hover"); z.ondrop=async(e)=>{ e.preventDefault(); z.classList.remove("drop-hover"); const dd=INV.drag; INV.drag=null; if(!dd||!dd.iid) return; const target=z.dataset.owner; if(!target||target===dd.owner) return; invToast("Moving…"); try{ await moveItem({ hash:dd.hash, iid:dd.iid, owner:dd.owner, equipped:dd.equipped, target, equip:false, quantity:dd.quantity }); invToast("Moved", true); applyLocalMove({ hash:dd.hash, iid:dd.iid, owner:dd.owner, target, equip:false }); renderInvPreserve(INV.profile); }catch(err){ invToast(err.message||"Move failed", false, true); } }; });
 }
 function renderInventory(host, profile){
   const defs=INV.defs; INV.profile=profile;
@@ -1246,26 +1254,49 @@ function showItemPopup(hash, iid, anchor){
     const target=btn.dataset.target, equip=btn.dataset.act==="equip";
     pop.querySelectorAll(".ip-cbtn").forEach(b=> b.disabled=true);
     closeItemPopup(); invToast("Moving "+(d.n||"item")+"…");
-    try{ await moveItem({ hash, iid, owner, equipped, target, equip, quantity:1 }); invToast((equip?"Equipped ":"Moved ")+(d.n||"item"), true); refreshInventory(); }
+    try{ await moveItem({ hash, iid, owner, equipped, target, equip, quantity:1 }); invToast((equip?"Equipped ":"Moved ")+(d.n||"item"), true); applyLocalMove({ hash, iid, owner, target, equip }); renderInvPreserve(INV.profile); }
     catch(e){ invToast(e.message||"Move failed", false, true); }
   });
   setTimeout(()=>{ document.addEventListener("mousedown", outsideClosePop, true); document.addEventListener("keydown", escClosePop, true); }, 0);
 }
 function stopInvPoll(){ if(INV.pollTimer){ clearInterval(INV.pollTimer); INV.pollTimer=null; } }
 function startInvPoll(){ stopInvPoll(); if(INV.autoRefresh!==false) INV.pollTimer=setInterval(refreshInventory, 30000); }
+function renderInvPreserve(profile){
+  const host=$("#invBody"); if(!host) return;
+  const open=new Set([...host.querySelectorAll(".inv-cat.open")].map(c=>c.dataset.cat));
+  const se0=host.querySelector("#invSearch"); const sv=se0?se0.value:""; const sy=window.scrollY;
+  renderInventory(host, profile);
+  host.querySelectorAll(".inv-cat").forEach(c=> c.classList.toggle("open", open.has(c.dataset.cat)));
+  if(sv){ const se=host.querySelector("#invSearch"); if(se){ se.value=sv; se.dispatchEvent(new Event("input")); } }
+  window.scrollTo(0, sy);
+}
+// Optimistic local move: update our in-memory profile so the grid reflects the change instantly
+// (Bungie's profile API is eventually-consistent and can lag several seconds after a transfer).
+function applyLocalMove(o){
+  const p=INV.profile; if(!p||!p.characterInventories) return false;
+  const ciD=(p.characterInventories&&p.characterInventories.data)||{}, ceD=(p.characterEquipment&&p.characterEquipment.data)||{}, pv=(p.profileInventory&&p.profileInventory.data)||{};
+  const pull=(arr)=>{ if(!arr) return null; const i=arr.findIndex(x=>String(x.itemInstanceId)===String(o.iid)); return i>=0?arr.splice(i,1)[0]:null; };
+  let item=null;
+  if(o.owner==="vault") item=pull(pv.items);
+  else { item=pull(ciD[o.owner]&&ciD[o.owner].items) || pull(ceD[o.owner]&&ceD[o.owner].items); }
+  if(!item) return false;
+  if(o.target==="vault"){ pv.items=pv.items||[]; pv.items.push(item); return true; }
+  const tInv=ciD[o.target], tEq=ceD[o.target]; if(!tInv) return false; tInv.items=tInv.items||[];
+  if(o.equip && tEq){ tEq.items=tEq.items||[]; const bucket=(INV.defs[o.hash]||{}).b;
+    const pi=tEq.items.findIndex(x=>((INV.defs[x.itemHash]||{}).b)===bucket);
+    if(pi>=0){ const prev=tEq.items.splice(pi,1)[0]; tInv.items.push(prev); }
+    tEq.items.push(item);
+  } else { tInv.items.push(item); }
+  return true;
+}
 async function refreshInventory(){
   if(!getToken()||!INV.defs) return;
   if(document.querySelector(".item-pop")) return;
   const host=$("#invBody"); if(!host) return;
   let profile; try{ profile=await loadInventory(); }catch(e){ return; }
   if(!profile||!profile.characters||!profile.characters.data) return;
-  const open=new Set([...host.querySelectorAll(".inv-cat.open")].map(c=>c.dataset.cat));
-  const se0=host.querySelector("#invSearch"); const sv=se0?se0.value:""; const sy=window.scrollY;
-  renderInventory(host, profile);
-  host.querySelectorAll(".inv-cat").forEach(c=> c.classList.toggle("open", open.has(c.dataset.cat)));
-  if(sv){ const se=host.querySelector("#invSearch"); if(se){ se.value=sv; se.dispatchEvent(new Event("input")); } }
-  const st=host.querySelector("#invStamp"); if(st) st.textContent="Updated "+new Date().toLocaleTimeString();
-  window.scrollTo(0, sy);
+  renderInvPreserve(profile);
+  const st=$("#invStamp"); if(st) st.textContent="Updated "+new Date().toLocaleTimeString();
 }
 async function renderInventoryPage(force){
   const host=$("#invBody");
