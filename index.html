@@ -124,7 +124,19 @@
   .hcell.evt-exp { box-shadow: inset 0 0 0 1.5px var(--evt-exp); }
   .hcell.evt-season { box-shadow: inset 0 0 0 1.5px var(--evt-season); }
   .hcell.evt-raid { box-shadow: inset 0 0 0 1.5px var(--evt-raid); }
+  .hcell.pulse-ok { animation: pOk 1.7s ease-in-out infinite; }
+  .hcell.pulse-miss { animation: pMiss 1.7s ease-in-out infinite; }
+  @keyframes pOk { 0%,100%{ box-shadow: inset 0 0 0 0 rgba(245,212,154,0);} 50%{ box-shadow: inset 0 0 0 2px var(--gold);} }
+  @keyframes pMiss { 0%,100%{ box-shadow: inset 0 0 0 0 rgba(229,115,115,0);} 50%{ box-shadow: inset 0 0 0 2px var(--bad);} }
   .heat-scroll { overflow-x: auto; padding-bottom: 6px; }
+  .emblem-panel { border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:14px 16px; margin:4px 0 16px; }
+  .emblem-panel .ebtn-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .emblem-panel .verdict { font-size:15px; font-weight:700; }
+  .emblem-panel .verdict.yes { color: var(--good); } .emblem-panel .verdict.no { color: var(--bad); }
+  .emblem-periods { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:5px 18px; font-size:12.5px; margin-top:12px; }
+  .emblem-periods .ep { display:flex; justify-content:space-between; gap:8px; border-bottom:1px solid var(--line); padding:3px 0; }
+  .emblem-periods .ep .ok { color: var(--good); } .emblem-periods .ep .no { color: var(--bad); font-weight:700; }
+  .emblem-note { font-size:11.5px; color:var(--muted); margin-top:10px; }
 
   .fun { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
   .fun-card { border: 1px dashed var(--line); border-radius: 12px; background: rgba(255,255,255,0.015); padding: 14px 16px; }
@@ -261,6 +273,17 @@ const RAIDS = [
   { n:"King's Fall", d:"2022-08-26" }, { n:"Root of Nightmares", d:"2023-03-10" }, { n:"Crota's End", d:"2023-09-01" },
   { n:"Salvation's Edge", d:"2024-06-07" },
 ];
+// Old Lights emblem: must have played at least once in EVERY window (Bungie's official ranges).
+const OLD_LIGHTS = [
+  { n:"Destiny 2 Launch", a:"2017-09-06", b:"2018-09-03" },
+  { n:"Forsaken",         a:"2018-09-04", b:"2019-09-30" },
+  { n:"Shadowkeep",       a:"2019-10-01", b:"2020-11-09" },
+  { n:"Beyond Light",     a:"2020-11-10", b:"2022-02-21" },
+  { n:"The Witch Queen",  a:"2022-02-22", b:"2023-02-27" },
+  { n:"Lightfall",        a:"2023-02-28", b:"2024-06-03" },
+  { n:"The Final Shape",  a:"2024-06-04", b:"2025-07-14" },
+  { n:"Year of Prophecy", a:"2025-07-15", b:"2026-06-08" },
+];
 // Build a lookup: dateKey -> [{type,name}]
 const EVENTS = (function(){
   const m = {};
@@ -308,17 +331,24 @@ function loadJSON(k){ try{ return JSON.parse(localStorage.getItem(k)||"null"); }
 function saveJSON(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){ pruneHistCaches(); try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e2){} } }
 function pruneHistCaches(){ try{ const keys=Object.keys(localStorage).filter(k=>k.startsWith("gc_hist_")); keys.slice(0,Math.ceil(keys.length/2)).forEach(k=>localStorage.removeItem(k)); }catch(e){} }
 
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function fetchHistory(type, id, characterIds, onProgress){
   const cacheKey="gc_hist_v2_"+id;
-  const cache=loadJSON(cacheKey)||{ days:{}, lastPeriod:null, totalActivities:0, sessionSec:0, maxSession:0 };
+  let cache=loadJSON(cacheKey)||{ days:{}, lastPeriod:null, totalActivities:0, sessionSec:0, maxSession:0, partial:false };
+  // If the previous fetch was incomplete (throttled mid-way), rebuild from scratch to avoid gaps/dupes.
+  if(cache.partial) cache={ days:{}, lastPeriod:null, totalActivities:0, sessionSec:0, maxSession:0, partial:false };
   const days=cache.days||{};
-  let newActs=[], pagesDone=0;
+  let newActs=[], pagesDone=0, incomplete=false;
   for(const cid of characterIds){
-    let page=0;
-    while(true){
-      let resp;
-      try{ resp=await bungie(`/Destiny2/${type}/Account/${id}/Character/${cid}/Stats/Activities/?mode=0&count=250&page=${page}`,{ headers:authHeaders() }); }
-      catch(e){ break; }
+    let page=0, stop=false;
+    while(!stop){
+      // fetch one page with up to 4 retries (handles Bungie throttling / transient errors)
+      let resp=null, tries=0;
+      while(resp===null){
+        try{ resp=await bungie(`/Destiny2/${type}/Account/${id}/Character/${cid}/Stats/Activities/?mode=0&count=250&page=${page}`,{ headers:authHeaders() }); }
+        catch(e){ tries++; if(tries>=4){ incomplete=true; stop=true; break; } await sleep(500*tries); }
+      }
+      if(stop) break;
       const acts=(resp&&resp.activities)||[];
       pagesDone++; if(onProgress) onProgress(pagesDone);
       if(!acts.length) break;
@@ -330,6 +360,7 @@ async function fetchHistory(type, id, characterIds, onProgress){
       }
       if(hit||acts.length<250) break;
       page++;
+      await sleep(70); // gentle throttle between pages
     }
   }
   let newestPeriod=cache.lastPeriod;
@@ -347,7 +378,7 @@ async function fetchHistory(type, id, characterIds, onProgress){
   }
   const totalActivities=(cache.totalActivities||0)+newActs.length;
   const totalSec=Object.values(days).reduce((a,d)=>a+d.s,0);
-  const out={ days, lastPeriod:newestPeriod, totalActivities, sessionSec, maxSession, totalSec, fetchedAt:Date.now() };
+  const out={ days, lastPeriod:newestPeriod, totalActivities, sessionSec, maxSession, totalSec, partial:incomplete, fetchedAt:Date.now() };
   saveJSON(cacheKey,out); return out;
 }
 
@@ -370,8 +401,8 @@ function mostPlayed(days, table){
 
 // ---- heatmap --------------------------------------------------------------
 function heatColor(sec){ if(!sec) return null; const t=Math.min(1,(sec/3600)/5); const hue=120-120*t; const light=46-12*t; return `hsl(${hue.toFixed(0)},72%,${light.toFixed(0)}%)`; }
-function buildHeatGrid(start, end, days, cellPx, showEvents){
-  const gs=weekStart(start), cap=end>todayMid()?todayMid():midnight(end), startM=midnight(start);
+function buildHeatGrid(start, end, days, cellPx, showEvents, pulse){
+  const gs=weekStart(start), cap=end>todayMid()?todayMid():new Date(midnight(end).getTime()-86400000), startM=midnight(start);
   const weeks=Math.floor((weekStart(cap)-gs)/(7*86400000))+1;
   const grid=el("div","heatgrid"); grid.style.gridTemplateRows=`repeat(7, ${cellPx}px)`; grid.style.gridAutoColumns=`${cellPx}px`;
   for(let w=0;w<weeks;w++){ for(let r=0;r<7;r++){
@@ -383,13 +414,14 @@ function buildHeatGrid(start, end, days, cellPx, showEvents){
       const col=heatColor(sec); if(col) cell.style.background=col;
       let title=`${k} — ${sec?fmtDuration(sec)+" played":"no play"}${info?` · ${info.c} activities`:""}`;
       if(showEvents && EVENTS[k]){ const ev=EVENTS[k]; cell.className+=" evt-"+ev[0].type; title+="\n★ "+ev.map(e=>e.name).join(", "); }
+      if(pulse){ if(pulse.ok&&pulse.ok.has(k)) cell.className+=" pulse-ok"; else if(pulse.miss&&pulse.miss.some(rg=> day>=rg.a&&day<rg.b)) cell.className+=" pulse-miss"; }
       cell.title=title;
     }
     grid.appendChild(cell);
   }}
   return grid;
 }
-function renderRangeBlocks(host, table, days, cellPx, showEvents){
+function renderRangeBlocks(host, table, days, cellPx, showEvents, pulse){
   host.innerHTML="";
   const wrap=el("div","season-wrap"); const firstPlay=midnight(Object.keys(days).sort()[0]||new Date());
   for(let i=0;i<table.length;i++){
@@ -399,18 +431,18 @@ function renderRangeBlocks(host, table, days, cellPx, showEvents){
     const block=el("div","season-block");
     block.appendChild(el("div","sb-title",escapeHtml(table[i].n)));
     block.appendChild(el("div","sb-time",sec?fmtDuration(sec):"—"));
-    block.appendChild(buildHeatGrid(start,end,days,cellPx,showEvents));
+    block.appendChild(buildHeatGrid(start,end,days,cellPx,showEvents,pulse));
     wrap.appendChild(block);
   }
   host.appendChild(wrap);
 }
-function renderYearView(host, days, showEvents){
+function renderYearView(host, days, showEvents, pulse){
   host.innerHTML=""; const keys=Object.keys(days).sort(); if(!keys.length) return;
   const y0=new Date(keys[0]).getFullYear(), y1=new Date().getFullYear();
   for(let y=y0;y<=y1;y++){
     const block=el("div","year-block"); const total=sumRange(days,new Date(y,0,1),new Date(y+1,0,1));
     block.appendChild(el("div","yb-title",`${y} <span style="color:var(--muted);font-weight:400;font-size:12px;">${fmtDuration(total)}</span>`));
-    const scroll=el("div","heat-scroll"); scroll.appendChild(buildHeatGrid(new Date(y,0,1),new Date(y,11,31),days,11,showEvents));
+    const scroll=el("div","heat-scroll"); scroll.appendChild(buildHeatGrid(new Date(y,0,1),new Date(y,11,31),days,11,showEvents,pulse));
     block.appendChild(scroll); host.appendChild(block);
   }
 }
@@ -465,7 +497,7 @@ function renderTrack(container, member, profile, stats){
   const sg=el("div","stat-grid");
   const refs={};
   const mkTile=(label, valHtml, extra, refKey, small)=>{ const t=el("div","stat-tile"); const v=el("div","v"+(small?" small":""), valHtml); t.appendChild(v); t.appendChild(el("div","l",label)); if(extra) t.appendChild(el("div","x",extra)); if(refKey) refs[refKey]=v; sg.appendChild(t); return t; };
-  const hero=el("div","stat-tile hero"); hero.innerHTML=`<div class="v">${fmtDuration(totalSeconds)}</div><div class="l">Total Time in Activities</div><div class="x">${commas(totalSeconds/3600)} hours · ${(totalSeconds/86400).toFixed(1)} days</div>`; sg.appendChild(hero);
+  const hero=el("div","stat-tile hero"); const heroV=el("div","v",fmtDuration(totalSeconds)); const heroX=el("div","x",`${commas(totalSeconds/3600)} hours · ${(totalSeconds/86400).toFixed(1)} days`); hero.appendChild(heroV); hero.appendChild(el("div","l","Total Time in Activities")); hero.appendChild(heroX); refs.heroV=heroV; refs.heroX=heroX; sg.appendChild(hero);
   mkTile("Time in Destiny 2","—","incl. between activities","destiny",true);
   mkTile("Activities", activityCount?commas(activityCount):"—", null, "activities");
   mkTile("Most-Played Season","—",null,"season",true);
@@ -500,6 +532,11 @@ function renderTrack(container, member, profile, stats){
   tog.appendChild(bSeason); tog.appendChild(bExp); tog.appendChild(bYear); tog.appendChild(evtLabel);
   calTitle.appendChild(tog); container.appendChild(calTitle);
   container.appendChild(buildLegend());
+  // Old Lights emblem panel
+  const emblemPanel=el("div","emblem-panel");
+  const emblemBtn=el("button","btn sm","Check Old Lights emblem eligibility"); emblemBtn.disabled=true;
+  const emblemRow=el("div","ebtn-row"); emblemRow.appendChild(emblemBtn); emblemRow.appendChild(el("span","emblem-note","Did this Guardian play at least once in every Destiny 2 era? (Old Lights / Elemental Qi)"));
+  const emblemResult=el("div"); emblemPanel.appendChild(emblemRow); emblemPanel.appendChild(emblemResult); container.appendChild(emblemPanel);
   const heatLoad=el("div","",`<span class="spinner"></span>Loading activity history… <div class="progress"><div class="histbar" style="height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));width:0%"></div></div>`);
   container.appendChild(heatLoad);
   const heatHost=el("div"); heatHost.style.display="none"; container.appendChild(heatHost);
@@ -517,31 +554,56 @@ function renderTrack(container, member, profile, stats){
   container.appendChild(fun);
 
   // calendar state + wiring (local, no global IDs)
-  let activeView="season", showEvents=false, histDays=null;
+  let activeView="season", showEvents=false, histDays=null, emblemPulse=null;
   function draw(){
     if(!histDays) return;
     seasonHost.style.display = activeView==="season"?"block":"none";
     expHost.style.display    = activeView==="exp"?"block":"none";
     yearHost.style.display   = activeView==="year"?"block":"none";
-    if(activeView==="season") renderRangeBlocks(seasonHost,SEASONS,histDays,9,showEvents);
-    else if(activeView==="exp") renderRangeBlocks(expHost,EXPANSIONS,histDays,7,showEvents);
-    else renderYearView(yearHost,histDays,showEvents);
+    if(activeView==="season") renderRangeBlocks(seasonHost,SEASONS,histDays,9,showEvents,emblemPulse);
+    else if(activeView==="exp") renderRangeBlocks(expHost,EXPANSIONS,histDays,7,showEvents,emblemPulse);
+    else renderYearView(yearHost,histDays,showEvents,emblemPulse);
   }
   function setView(v,btn){ activeView=v; [bSeason,bExp,bYear].forEach(b=>b.classList.remove("active")); btn.classList.add("active"); draw(); }
   bSeason.onclick=()=>setView("season",bSeason); bExp.onclick=()=>setView("exp",bExp); bYear.onclick=()=>setView("year",bYear);
   evtBox.onchange=()=>{ showEvents=evtBox.checked; draw(); };
+
+  // Old Lights emblem eligibility check
+  function checkEmblem(){
+    if(!histDays) return;
+    const keys=Object.keys(histDays).sort();
+    const ok=new Set(), miss=[]; let eligible=true;
+    const rows=OLD_LIGHTS.map(p=>{
+      const a=midnight(p.a), b=new Date(midnight(p.b).getTime()+86400000); // inclusive end
+      const day=keys.find(k=>{ const d=midnight(k); return d>=a && d<b; });
+      if(day) ok.add(day); else { miss.push({a, b}); eligible=false; }
+      return { name:p.n, day, range:`${p.a} → ${p.b}` };
+    });
+    emblemPulse={ ok, miss };
+    // switch to expansion view so the ranges line up with the eras, then redraw with pulses
+    setView("exp",bExp);
+    emblemResult.innerHTML =
+      `<div class="verdict ${eligible?"yes":"no"}">${eligible?"✓ Eligible — played in all 8 eras":"✗ Not eligible — missing "+miss.length+" era"+(miss.length>1?"s":"")}</div>`
+      + `<div class="emblem-periods">`+rows.map(r=>`<div class="ep"><span>${escapeHtml(r.name)}</span>`+(r.day?`<span class="ok">✓ ${r.day}</span>`:`<span class="no">✗ no play</span>`)+`</div>`).join("")+`</div>`
+      + `<div class="emblem-note">Gold-pulsing cells = a qualifying play in each era; red-pulsing = an era with no recorded play. Based on this account's public activity history — Bungie counts any login across all linked platforms, and pre-cross-save play on unlinked platforms may not appear here.</div>`;
+  }
+  emblemBtn.onclick=checkEmblem;
 
   // async history load
   const charIds=charList.map(c=>c.characterId);
   fetchHistory(member.membershipType, member.membershipId, charIds, (pages)=>{ const bar=heatLoad.querySelector(".histbar"); if(bar) bar.style.width=Math.min(95,pages*6)+"%"; })
   .then(hist=>{
     heatLoad.remove(); heatHost.style.display="block"; histDays=hist.days; draw();
+    emblemBtn.disabled=false;
+    // Switch the headline numbers to history-summed values (matches d2scrub-style accounting & the calendar).
+    if(hist.totalSec){ refs.heroV.textContent=fmtDuration(hist.totalSec); refs.heroX.textContent=`${commas(hist.totalSec/3600)} hours · ${(hist.totalSec/86400).toFixed(1)} days`; }
+    if(hist.totalActivities) refs.activities.textContent=commas(hist.totalActivities);
     const st=computeStreaks(hist.days);
     if(st){ refs.current.textContent=st.current+"d "+st.currentState; refs.longAct.textContent=st.longestActive+"d"; refs.longIna.textContent=st.longestInactive+"d"; }
     if(hist.sessionSec) refs.destiny.textContent=fmtDuration(hist.sessionSec);
     if(hist.maxSession) refs.session.textContent=fmtDuration(hist.maxSession);
-    if(!activityCount && hist.totalActivities) refs.activities.textContent=commas(hist.totalActivities);
     const ms=mostPlayed(hist.days,SEASONS); if(ms&&ms.sec){ refs.season.textContent=ms.name.replace(/^Season of |^Season: |^Episode: /,""); refs.season.title=ms.name+" — "+fmtDuration(ms.sec); }
+    if(hist.partial){ const w=el("div","emblem-note",`⚠ Activity history may be incomplete (the Bungie API throttled this large account). Reload to finish fetching for exact totals.`); w.style.color="var(--bad)"; emblemPanel.appendChild(w); }
   })
   .catch(err=>{ heatLoad.innerHTML=`<span class="err">Couldn't load activity history (${escapeHtml(err.message)}). Streaks & calendar need public activity history.</span>`; });
 }
