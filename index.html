@@ -288,8 +288,10 @@
   .inv-toast.ok { border-color:var(--good); color:var(--good); } .inv-toast.err { border-color:var(--bad); color:var(--bad); }
 
   /* ---- encounter builder ---- */
-  .eb-players { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; }
-  .eb-card { width:230px; flex:none; border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:12px; }
+  .eb-players { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; align-items:stretch; }
+  @media(max-width:980px){ .eb-players{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media(max-width:640px){ .eb-players{ grid-template-columns:1fr; } }
+  .eb-card { display:flex; flex-direction:column; border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:14px; }
   .eb-chead { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
   .eb-name { font-weight:800; font-size:14px; }
   .eb-sub2 { font-size:11px; color:var(--muted); margin-top:2px; }
@@ -308,7 +310,7 @@
   .eb-stat { display:grid; grid-template-columns:1fr 26px 50px; gap:6px; align-items:center; font-size:11px; margin:2px 0; }
   .eb-stat .sn { color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .eb-stat .sv { text-align:right; font-weight:700; }
   .eb-stat .sbar { height:6px; background:#0c0d0f; border-radius:3px; overflow:hidden; } .eb-stat .sbar>div { height:100%; background:#dfe3e8; }
-  .eb-add { width:230px; flex:none; border:1px dashed var(--line); border-radius:12px; background:rgba(255,255,255,0.01); padding:14px; }
+  .eb-add { border:1px dashed var(--line); border-radius:12px; background:rgba(255,255,255,0.01); padding:14px; display:flex; align-items:center; }
   .eb-add-inner { display:flex; flex-direction:column; gap:8px; align-items:stretch; }
   .eb-plus { font-size:30px; color:var(--muted); text-align:center; }
   .eb-add input[type=text], .eb-add input#ebInput { background:#0c1119; border:1px solid var(--line); color:var(--text); padding:8px 10px; border-radius:7px; outline:none; }
@@ -336,8 +338,8 @@
   /* ---- fireteam builder extras ---- */
   .fb-builds { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:18px; padding:10px 12px; background:var(--bg2); border:1px solid var(--line); border-radius:9px; }
   .fb-builds input { background:#0c1119; border:1px solid var(--line); color:var(--text); padding:7px 10px; border-radius:7px; outline:none; min-width:160px; }
-  .eb-import { margin-top:10px; border-top:1px solid var(--line); padding-top:8px; }
-  .eb-implabel { width:100%; text-align:center; cursor:pointer; display:block; }
+  .eb-import { margin-top:auto; border-top:1px solid var(--line); padding-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
+  .eb-implabel { cursor:pointer; }
   .eb-impok { font-size:11.5px; color:var(--good); text-align:center; }
   .eb-recsub { margin-bottom:6px; } .eb-recsub-t { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin:4px 0 3px; }
   .eb-rsec { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); padding:6px 10px 3px; background:var(--panel); position:sticky; top:0; }
@@ -352,6 +354,9 @@
   .fb-current { font-size:13px; color:var(--gold); font-weight:700; margin:-10px 0 12px; }
   .fb-bl { font-size:11px; color:var(--muted); display:inline-flex; align-items:center; gap:6px; }
   .fb-bl input { background:#0c1119; border:1px solid var(--line); color:var(--text); padding:7px 10px; border-radius:7px; outline:none; min-width:150px; }
+
+  .fb-lockbadge { color:var(--gold); font-size:11px; font-weight:600; }
+  .eb-add-inner { width:100%; }
 </style>
 </head>
 <body>
@@ -1096,7 +1101,7 @@ $("#tabCompare").onclick=()=>{ $("#tabCompare").classList.add("active"); $("#tab
 
 // ---- sidebar page navigation ----
 // ===================== FIRETEAM BUILDER ==========================
-const EB = { players:[], recs:[], defCache:{}, nameIndex:null, nameList:null, pollT:null, currentBuild:"" };
+const EB = { players:[], recs:[], defCache:{}, nameIndex:null, nameList:null, pollT:null, currentBuild:"", locked:false };
 const WEAP_BK=["1498876634","2465295065","953998645"];
 const ARM_BK=["3448274439","3551918588","14239492","20886954","1585787867"];
 const SUB_BK="3284755031";
@@ -1178,12 +1183,15 @@ function ebRender(){
   const host=$("#ebBody"); if(!host) return;
   // builds bar
   const builds=fbGetBuilds(); const names=Object.keys(builds);
-  let h=`<div class="fb-current">${EB.currentBuild?escapeHtml(EB.currentBuild):"Untitled"}</div>`;
-  h+=`<div class="fb-builds"><label class="fb-bl">Build Name <input id="fbName" value="${escapeHtml(EB.currentBuild||"")}" placeholder="Untitled" autocomplete="off"/></label>`;
+  let h=`<div class="fb-current">${EB.currentBuild?escapeHtml(EB.currentBuild):"Untitled"}${EB.locked?` <span class="fb-lockbadge">&#128274; locked</span>`:""}</div>`;
+  h+=`<div class="fb-builds">`;
+  h+=`<label class="fb-bl">Build Name <input id="fbName" value="${escapeHtml(EB.currentBuild||"")}" placeholder="Untitled" autocomplete="off"${EB.locked?" disabled":""}/></label>`;
   h+=`<select id="fbLoad" class="inv-ctrl"><option value="">Load Build…</option>`+names.map(n=>`<option value="${escapeHtml(n)}"${n===EB.currentBuild?" selected":""}>${escapeHtml(n)}</option>`).join("")+`</select>`;
-  h+=`<button class="btn sm" id="fbEdit" title="Save changes to the loaded build (renames it to Build Name)">Edit Build</button>`;
-  h+=`<button class="btn sm gold" id="fbSave" title="Save the current fireteam as a new build">Save Build</button>`;
-  h+=`<button class="btn sm" id="fbDel" title="Delete the loaded build">Delete Build</button></div>`;
+  h+=`<button class="btn sm" id="fbNew">New Build</button>`;
+  h+=`<button class="btn sm${EB.locked?" gold":""}" id="fbLock" title="${EB.locked?"Unlock to allow saving/deleting":"Lock to protect this build from changes"}">${EB.locked?"&#128274; Locked":"&#128275; Unlocked"}</button>`;
+  h+=`<button class="btn sm gold" id="fbSave"${EB.locked?" disabled":""}>Save Build</button>`;
+  h+=`<button class="btn sm" id="fbDel"${EB.locked?" disabled":""}>Delete Build</button>`;
+  h+=`</div>`;
   // players
   h+=`<div class="eb-players">`+EB.players.map((p,i)=>ebPlayerCard(p,i)).join("");
   if(EB.players.length<6) h+=`<div class="eb-add"><div class="eb-add-inner"><div class="eb-plus">+</div><input id="ebInput" type="text" placeholder="Bungie Name#1234" autocomplete="off"/><button class="btn sm gold" id="ebAddBtn">Add player</button><div class="eb-hint2">Players load from their Bungie ID. Use the Import button on a card to add their exported vault.</div></div></div>`;
@@ -1223,20 +1231,21 @@ function ebBind(host){
   const se=$("#ebSearch"), res=$("#ebResults");
   if(se) se.oninput=()=>{ const q=se.value; if(!q){ res.innerHTML=""; res.classList.remove("open"); return; } const r=ebSearch(q); const byCat=ebGroup(r, x=>x.cat); res.innerHTML=Object.keys(byCat).map(cat=>`<div class="eb-rsec">${escapeHtml(cat)}</div>`+byCat[cat].map(x=>`<div class="eb-ritem" data-add="${x.key}"><div class="eb-item sm ${TIER_CLASS[x.t]||"t-common"}">${x.ic?`<img src="${BASE+x.ic}"/>`:""}</div><span>${escapeHtml(x.name)}</span><small>${escapeHtml(x.sub)}</small></div>`).join("")).join("")||`<div class="eb-ritem">No matches</div>`; res.classList.add("open"); res.querySelectorAll("[data-add]").forEach(ri=> ri.onclick=()=>{ ebAddRec(ri.dataset.add); se.value=""; res.innerHTML=""; res.classList.remove("open"); }); };
   const fbName=$("#fbName");
-  const fbSave=$("#fbSave"); if(fbSave) fbSave.onclick=()=>{ const n=(fbName.value||"").trim(); if(!n){ invToast("Enter a build name first.",false,true); return; } fbSaveBuild(n); };
-  const fbEdit=$("#fbEdit"); if(fbEdit) fbEdit.onclick=()=>{ if(!EB.currentBuild){ invToast("No build loaded — use Save Build.",false,true); return; } const nn=(fbName.value||"").trim()||EB.currentBuild; fbEditBuild(EB.currentBuild, nn); };
+  const fbNew=$("#fbNew"); if(fbNew) fbNew.onclick=()=>{ if((EB.players.length||EB.recs.length) && !window.confirm("Start a new build? Unsaved changes will be lost.")) return; EB.players=[]; EB.recs=[]; EB.currentBuild=""; EB.locked=false; ebRender(); };
+  const fbLock=$("#fbLock"); if(fbLock) fbLock.onclick=()=>{ EB.locked=!EB.locked; if(EB.currentBuild){ const bb=fbGetBuilds(); if(bb[EB.currentBuild]){ bb[EB.currentBuild].locked=EB.locked; saveJSON("gc_fb_builds",bb); } } ebRender(); };
+  const fbSave=$("#fbSave"); if(fbSave) fbSave.onclick=()=>{ if(EB.locked){ invToast("Build locked — unlock to save.",false,true); return; } const n=(fbName.value||"").trim(); if(!n){ invToast("Enter a build name first.",false,true); return; } if(fbGetBuilds()[n] && !window.confirm("Overwrite existing build “"+n+"”?")) return; fbSaveBuild(n); };
   const fbLoad=$("#fbLoad"); if(fbLoad) fbLoad.onchange=()=>{ if(fbLoad.value) fbLoadBuild(fbLoad.value); };
-  const fbDel=$("#fbDel"); if(fbDel) fbDel.onclick=()=>{ const t=EB.currentBuild||($("#fbLoad")&&$("#fbLoad").value); if(!t){ invToast("No build to delete.",false,true); return; } fbDeleteBuild(t); };
+  const fbDel=$("#fbDel"); if(fbDel) fbDel.onclick=()=>{ if(EB.locked){ invToast("Build locked — unlock to delete.",false,true); return; } const t=EB.currentBuild||($("#fbLoad")&&$("#fbLoad").value); if(!t){ invToast("No build to delete.",false,true); return; } if(!window.confirm("Delete build “"+t+"”? This cannot be undone.")) return; fbDeleteBuild(t); };
 }
 // ---- save / load builds ----
 function fbGetBuilds(){ return loadJSON("gc_fb_builds")||{}; }
 function fbSerPlayer(p){ return { source:p.source, label:p.label, member:p.member?{membershipType:p.member.membershipType,membershipId:p.member.membershipId,bungieGlobalDisplayName:p.member.bungieGlobalDisplayName,bungieGlobalDisplayNameCode:p.member.bungieGlobalDisplayNameCode}:null, chars:p.chars, charIdx:p.charIdx, collectibles:p.collectibles, ownedHashes:p.ownedHashes?[...p.ownedHashes]:null }; }
 function fbDeserPlayer(o){ return { source:o.source||"id", label:o.label, member:o.member, chars:o.chars||[], charIdx:o.charIdx||0, collectibles:o.collectibles||{}, equippedHashes:new Set([].concat.apply([],(o.chars||[]).map(c=>(c.equipped||[]).map(e=>e.hash)))), ownedHashes:o.ownedHashes?new Set(o.ownedHashes):null, profile:null }; }
 function fbCurrentState(){ return { savedAt:Date.now(), players:EB.players.map(fbSerPlayer), recs:EB.recs.map(r=>({ key:r.key,name:r.name,hashes:r.hashes,rep:r.rep,ic:r.ic,t:r.t,cat:r.cat,sub:r.sub,collHashes:r.collHashes,priority:r.priority })) }; }
-function fbSaveBuild(name){ const builds=fbGetBuilds(); builds[name]=fbCurrentState(); saveJSON("gc_fb_builds",builds); EB.currentBuild=name; ebRender(); invToast("Saved “"+name+"”",true); }
+function fbSaveBuild(name){ const builds=fbGetBuilds(); const st=fbCurrentState(); st.locked=EB.locked; builds[name]=st; saveJSON("gc_fb_builds",builds); EB.currentBuild=name; ebRender(); invToast("Saved “"+name+"”",true); }
 function fbEditBuild(oldName, newName){ const builds=fbGetBuilds(); const data=fbCurrentState(); if(newName!==oldName && builds[oldName]) delete builds[oldName]; builds[newName]=data; saveJSON("gc_fb_builds",builds); EB.currentBuild=newName; ebRender(); invToast("Updated “"+newName+"”",true); }
-function fbLoadBuild(name){ const b=fbGetBuilds()[name]; if(!b) return; EB.players=(b.players||[]).map(fbDeserPlayer); EB.recs=(b.recs||[]).map(r=>Object.assign({collHashes:[],priority:"Medium"},r)); EB.currentBuild=name; ebRender(); invToast("Loaded “"+name+"”",true); fbRefreshIdPlayers(); }
-function fbDeleteBuild(name){ const builds=fbGetBuilds(); delete builds[name]; saveJSON("gc_fb_builds",builds); if(EB.currentBuild===name) EB.currentBuild=""; ebRender(); invToast("Deleted “"+name+"”",true); }
+function fbLoadBuild(name){ const b=fbGetBuilds()[name]; if(!b) return; EB.players=(b.players||[]).map(fbDeserPlayer); EB.recs=(b.recs||[]).map(r=>Object.assign({collHashes:[],priority:"Medium"},r)); EB.currentBuild=name; EB.locked=!!b.locked; ebRender(); invToast("Loaded “"+name+"”",true); fbRefreshIdPlayers(); }
+function fbDeleteBuild(name){ const builds=fbGetBuilds(); delete builds[name]; saveJSON("gc_fb_builds",builds); if(EB.currentBuild===name){ EB.currentBuild=""; EB.locked=false; } ebRender(); invToast("Deleted “"+name+"”",true); }
 // ---- live listener (refresh by-ID players) ----
 function fbStopPoll(){ if(EB.pollT){ clearInterval(EB.pollT); EB.pollT=null; } }
 function fbStartPoll(){ fbStopPoll(); EB.pollT=setInterval(fbRefreshIdPlayers, 45000); }
