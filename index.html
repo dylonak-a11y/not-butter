@@ -357,6 +357,19 @@
 
   .fb-lockbadge { color:var(--gold); font-size:11px; font-weight:600; }
   .eb-add-inner { width:100%; }
+
+  .sugg-item { display:flex; align-items:center; gap:9px; padding:9px 12px; cursor:pointer; font-size:14px; }
+  .sugg-item:hover { background:var(--panel); }
+  .sg-ic { width:18px; text-align:center; flex:none; } .sg-ic.fav{ color:var(--gold); } .sg-ic.friend{ color:var(--good); } .sg-ic.recent{ color:var(--muted); }
+  .sg-l { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sg-x { color:var(--muted); font-weight:700; padding:0 4px; } .sg-x:hover { color:var(--bad); }
+  .eb-inwrap { position:relative; }
+  .eb-chead-btns { display:flex; gap:4px; align-items:center; flex:none; }
+  .eb-fav { background:transparent; border:0; color:var(--muted); font-size:16px; cursor:pointer; line-height:1; padding:0; }
+  .eb-fav.on { color:var(--gold); }
+  .track-fav { position:absolute; top:12px; right:14px; z-index:2; background:transparent; border:0; color:var(--muted); font-size:20px; cursor:pointer; }
+  .track-fav.on { color:var(--gold); }
+  .cmp-add .input-wrap { flex:1; min-width:220px; } .cmp-add .input-wrap input { width:100%; }
 </style>
 </head>
 <body>
@@ -402,7 +415,7 @@
   <div id="compareView">
     <div class="search-card">
       <div class="cmp-add">
-        <input id="cmpInput" type="text" placeholder="Add a Bungie Name  —  e.g.  Guardian#1234" autocomplete="off" />
+        <div class="input-wrap"><input id="cmpInput" type="text" placeholder="Add a Bungie Name  —  e.g.  Guardian#1234" autocomplete="off" /><div class="recent-pop sugg-pop" id="cmpSuggest"></div></div>
         <button class="btn" id="cmpAddBtn">+ Add</button>
         <button class="btn gold" id="cmpRunBtn">Compare</button>
       </div>
@@ -531,7 +544,7 @@ async function getProfile(type,id){ return bungie(`/Destiny2/${type}/Profile/${i
 async function getAccountStats(type,id){ return bungie(`/Destiny2/${type}/Account/${id}/Stats/`,{ headers:authHeaders() }); }
 
 // ---- multi-platform aggregation + in-session cache -----------------------
-const SESSION = { mem:{}, data:{}, cmp:{} };
+const SESSION = { mem:{}, data:{}, cmp:{}, friends:null };
 async function getLinkedMemberships(type, id){
   try{
     const r=await bungie(`/Destiny2/${type}/Profile/${id}/LinkedProfiles/?getAllMemberships=true`,{ headers:authHeaders() });
@@ -737,6 +750,7 @@ function renderTrack(container, member, profile, stats, opts){
   const code=userInfo.bungieGlobalDisplayNameCode||member.bungieGlobalDisplayNameCode;
   const isMe=!!getToken()&&String(member.membershipId)===String(getMyMembershipId());
   head.appendChild(el("div","info",`<h2>${escapeHtml(name)}${code?`<span class="tag">#${String(code).padStart(4,"0")}</span>`:""} ${isMe?'<span class="me-badge">YOU</span>':""}<span class="platform-pill">${PLATFORMS[member.membershipType]||"Cross Save"}</span></h2><div class="sub">${charList.length} character${charList.length!==1?"s":""} &middot; last played ${timeAgo(profile.profile&&profile.profile.data&&profile.profile.data.dateLastPlayed)}</div>`));
+  if(member && member.membershipId){ const favOn=()=>isFavorite(member.membershipId); const tl=name+(code?("#"+String(code).padStart(4,"0")):""); const fav=el("button","track-fav"+(favOn()?" on":""), favOn()?"&#9733;":"&#9734;"); fav.title="Add to favorites"; fav.onclick=()=>{ toggleFavorite({id:member.membershipId,type:member.membershipType,label:tl}); fav.className="track-fav"+(favOn()?" on":""); fav.innerHTML=favOn()?"&#9733;":"&#9734;"; }; head.appendChild(fav); }
   container.appendChild(head);
 
   if(opts.memberships && opts.memberships.length>1 && opts.onFilter){
@@ -892,6 +906,16 @@ async function runSearch(raw){
 function goToTrack(label){ $("#tabTrack").click(); $("#nameInput").value=label; runSearch(label); window.scrollTo({top:0,behavior:"smooth"}); }
 
 // recent searches
+const FAV_KEY="gc_favorites";
+function getFavorites(){ return loadJSON(FAV_KEY)||[]; }
+function isFavorite(id){ if(!id) return false; return getFavorites().some(x=>String(x.id)===String(id)); }
+function addFavorite(o){ if(!o||!o.label) return; let fav=getFavorites().filter(x=> String(x.id)!==String(o.id) && x.label!==o.label); fav.unshift({ id:o.id?String(o.id):"", type:o.type||null, label:o.label }); saveJSON(FAV_KEY, fav.slice(0,40)); }
+function removeFavorite(idOrLabel){ saveJSON(FAV_KEY, getFavorites().filter(x=> String(x.id)!==String(idOrLabel) && x.label!==idOrLabel)); }
+function toggleFavorite(o){ if(o.id && isFavorite(o.id)){ removeFavorite(o.id); } else if(getFavorites().some(x=>x.label===o.label)){ removeFavorite(o.label); } else { addFavorite(o); } }
+async function getFriends(){ if(!getToken()) return []; if(SESSION.friends) return SESSION.friends; try{ const r=await bungie("/Social/Friends/",{ headers:authHeaders() }); const list=((r&&r.friends)||[]).map(fr=>{ const u=fr.bungieNetUser||{}; const name=fr.bungieGlobalDisplayName||u.bungieGlobalDisplayName; const code=fr.bungieGlobalDisplayNameCode||u.bungieGlobalDisplayNameCode; if(!name) return null; return { label:name+"#"+String(code||"").padStart(4,"0"), id:fr.lastSeenAsMembershipId||u.membershipId, type:fr.lastSeenAsBungieMembershipType }; }).filter(Boolean); SESSION.friends=list; return list; }catch(e){ SESSION.friends=[]; return []; } }
+function playerSuggest(query){ query=(query||"").toLowerCase().trim(); const seen=new Set(); const out=[]; const push=(label,kind,o)=>{ if(!label) return; const k=label.toLowerCase(); if(seen.has(k)) return; if(query && k.indexOf(query)<0) return; seen.add(k); out.push(Object.assign({label,kind},o||{})); }; getFavorites().forEach(x=>push(x.label,"fav",{id:x.id,type:x.type})); (SESSION.friends||[]).forEach(x=>push(x.label,"friend",{id:x.id,type:x.type})); getRecents().forEach(x=>push(x.label,"recent",{id:x.id,type:x.type})); return out.slice(0,14); }
+function renderSuggestPop(popEl, query, onPick){ if(!popEl) return; const list=playerSuggest(query); if(!list.length){ popEl.classList.remove("open"); popEl.innerHTML=""; return; } const ic=k=> k==="fav"?"&#9733;":k==="friend"?"&#128101;":"&#128336;"; const lbl=k=> k==="fav"?"Favorite":k==="friend"?"Friend":"Recent"; popEl.innerHTML=list.map(x=>`<div class="sugg-item" data-label="${escapeHtml(x.label)}"><span class="sg-ic ${x.kind}" title="${lbl(x.kind)}">${ic(x.kind)}</span><span class="sg-l">${escapeHtml(x.label)}</span>${x.kind==="fav"?`<span class="sg-x" data-lbl="${escapeHtml(x.label)}" title="Remove favorite">&times;</span>`:""}</div>`).join(""); popEl.classList.add("open"); popEl.querySelectorAll(".sugg-item").forEach(it=> it.onmousedown=(e)=>{ if(e.target.closest(".sg-x")) return; e.preventDefault(); onPick(it.dataset.label); }); popEl.querySelectorAll(".sg-x").forEach(x=> x.onmousedown=(e)=>{ e.preventDefault(); e.stopPropagation(); removeFavorite(x.dataset.lbl); renderSuggestPop(popEl, query, onPick); }); }
+function attachSuggest(input, pop, onPick){ if(!input||!pop) return; const go=()=> renderSuggestPop(pop, input.value, (l)=>{ input.value=l; pop.classList.remove("open"); onPick(l); }); input.addEventListener("focus", go); input.addEventListener("input", go); input.addEventListener("blur", ()=> setTimeout(()=> pop.classList.remove("open"), 160)); }
 function getRecents(){ return loadJSON("gc_recent")||[]; }
 function pushRecent(member,label){ let r=getRecents().filter(x=>x.id!==member.membershipId); r.unshift({ id:member.membershipId, type:member.membershipType, label }); saveJSON("gc_recent",r.slice(0,8)); renderExamples(); }
 function renderExamples(){
@@ -899,7 +923,7 @@ function renderExamples(){
   if(recents.length){ box.appendChild(el("span","chip-label","Recent:")); recents.forEach(r=>{ const c=el("span","chip"); c.innerHTML=`<span class="rname">${escapeHtml(r.label)}</span> <span class="x">&times;</span>`; c.querySelector(".rname").onclick=()=>{ $("#nameInput").value=r.label; runSearch(r.label); }; c.querySelector(".x").onclick=(e)=>{ e.stopPropagation(); saveJSON("gc_recent",getRecents().filter(x=>x.id!==r.id)); renderExamples(); }; box.appendChild(c); }); }
   else { box.appendChild(el("span","chip-label","Try:")); [["Cozmo#1648"],["dmg04#1968"]].forEach(([n])=>{ const c=el("span","chip",n); c.onclick=()=>{ $("#nameInput").value=n; runSearch(n); }; box.appendChild(c); }); }
 }
-function showRecentPop(){ const pop=$("#recentPop"); const recents=getRecents(); if(!recents.length){ pop.classList.remove("open"); return; } pop.innerHTML=`<div class="rhead">Recent searches</div>`+recents.map(r=>`<div class="ritem" data-name="${escapeHtml(r.label)}"><span>${escapeHtml(r.label)}</span><small>${PLATFORMS[r.type]||""}</small></div>`).join(""); pop.querySelectorAll(".ritem").forEach(it=> it.onclick=()=>{ $("#nameInput").value=it.dataset.name; pop.classList.remove("open"); runSearch(it.dataset.name); }); pop.classList.add("open"); }
+function showRecentPop(){ const pop=$("#recentPop"); renderSuggestPop(pop, $("#nameInput").value, (l)=>{ $("#nameInput").value=l; pop.classList.remove("open"); runSearch(l); }); }
 
 // =========================================================================
 //  COMPARE TAB
@@ -1090,10 +1114,11 @@ function renderAuthArea(user){ const area=$("#authArea");
 $("#searchBtn").onclick=()=> runSearch($("#nameInput").value);
 $("#nameInput").addEventListener("keydown", e=>{ if(e.key==="Enter") runSearch($("#nameInput").value); });
 $("#nameInput").addEventListener("focus", showRecentPop);
-$("#nameInput").addEventListener("input", ()=>{ if(!$("#nameInput").value) showRecentPop(); else $("#recentPop").classList.remove("open"); });
+$("#nameInput").addEventListener("input", ()=> showRecentPop());
 document.addEventListener("click", e=>{ if(!e.target.closest(".input-wrap")) $("#recentPop").classList.remove("open"); });
 if($("#signInBtn")) $("#signInBtn").onclick=startOAuth;
 $("#cmpAddBtn").onclick=()=> addCmpPlayer($("#cmpInput").value);
+attachSuggest($("#cmpInput"), $("#cmpSuggest"), (l)=>{ addCmpPlayer(l); $("#cmpInput").value=""; });
 $("#cmpInput").addEventListener("keydown", e=>{ if(e.key==="Enter") addCmpPlayer($("#cmpInput").value); });
 $("#cmpRunBtn").onclick=runCompare;
 $("#tabTrack").onclick=()=>{ $("#tabTrack").classList.add("active"); $("#tabCompare").classList.remove("active"); $("#trackView").style.display="block"; $("#compareView").style.display="none"; };
@@ -1145,7 +1170,7 @@ async function exportShareCode(){ if(!getToken()){ invToast("Sign in first.",fal
 async function renderEncounterPage(){
   const host=$("#ebBody");
   if(!INV.defs){ host.innerHTML=`<div class="inv-empty"><span class="spinner"></span> Loading item database…</div>`; try{ await loadManifest(()=>{}); }catch(e){ host.innerHTML=`<div class="inv-empty"><h2>Couldn't load item database</h2><p class="err">${escapeHtml(e.message)}</p></div>`; return; } }
-  ebBuildNameIndex(); ebRender(); fbStartPoll(); }
+  ebBuildNameIndex(); getFriends().catch(()=>{}); ebRender(); fbStartPoll(); }
 async function ebAddById(raw){
   if(EB.players.length>=6) throw new Error("Max 6 players.");
   const member=await findMembership(raw);
@@ -1170,7 +1195,7 @@ function ebPlayerCard(p, idx){
   const sub=ch.equipped.find(x=> x.bucket===SUB_BK || (INV.defs[x.hash]&&String(INV.defs[x.hash].b)===SUB_BK)); const subD=sub?INV.defs[sub.hash]:null;
   let cs=""; if(p.chars.length>1){ cs=`<select class="eb-cswitch" data-pl="${idx}">`+p.chars.map((c,i)=>`<option value="${i}"${i===p.charIdx?" selected":""}>${CLASS_NAMES[c.classType]||"Guardian"}</option>`).join("")+`</select>`; }
   return `<div class="eb-card" data-pl="${idx}">
-    <div class="eb-chead"><div><div class="eb-name">${escapeHtml(p.label)}</div><div class="eb-sub2">${CLASS_NAMES[ch.classType]||"Guardian"} &middot; &#9733;${ch.light||0}</div></div><button class="eb-x" data-rm="${idx}" title="Remove">&times;</button></div>
+    <div class="eb-chead"><div><div class="eb-name">${escapeHtml(p.label)}</div><div class="eb-sub2">${CLASS_NAMES[ch.classType]||"Guardian"} &middot; &#9733;${ch.light||0}</div></div><div class="eb-chead-btns">${p.member?`<button class="eb-fav${isFavorite(p.member.membershipId)?" on":""}" data-fav="${idx}" title="Favorite">${isFavorite(p.member.membershipId)?"&#9733;":"&#9734;"}</button>`:""}<button class="eb-x" data-rm="${idx}" title="Remove">&times;</button></div></div>
     ${cs}
     ${subD?`<div class="eb-row"><span class="eb-rl">Subclass</span><div class="eb-item ${TIER_CLASS[subD.t]||"t-common"}" data-hash="${sub.hash}" data-iid="${sub.iid||""}" data-pl="${idx}" title="${escapeHtml(subD.n||"")}">${subD.ic?`<img src="${BASE+subD.ic}"/>`:""}</div></div>`:""}
     <div class="eb-row"><span class="eb-rl">Weapons</span>${WEAP_BK.map(bk=>ebSlot(ch,bk,idx)).join("")}</div>
@@ -1194,7 +1219,7 @@ function ebRender(){
   h+=`</div>`;
   // players
   h+=`<div class="eb-players">`+EB.players.map((p,i)=>ebPlayerCard(p,i)).join("");
-  if(EB.players.length<6) h+=`<div class="eb-add"><div class="eb-add-inner"><div class="eb-plus">+</div><input id="ebInput" type="text" placeholder="Bungie Name#1234" autocomplete="off"/><button class="btn sm gold" id="ebAddBtn">Add player</button><div class="eb-hint2">Players load from their Bungie ID. Use the Import button on a card to add their exported vault.</div></div></div>`;
+  if(EB.players.length<6) h+=`<div class="eb-add"><div class="eb-add-inner"><div class="eb-plus">+</div><div class="eb-inwrap"><input id="ebInput" type="text" placeholder="Bungie Name#1234" autocomplete="off"/><div class="recent-pop sugg-pop" id="ebSuggest"></div></div><button class="btn sm gold" id="ebAddBtn">Add player</button><div class="eb-hint2">Players load from their Bungie ID. Use the Import button on a card to add their exported vault.</div></div></div>`;
   h+=`</div><div id="ebStatus"></div>`;
   // recommended search
   h+=`<div class="section-title" style="margin-top:26px;">Recommended Equipment</div>`;
@@ -1221,6 +1246,8 @@ function ebBind(host){
   const add=$("#ebAddBtn"), inp=$("#ebInput");
   const doAdd=async()=>{ const v=inp.value.trim(); if(!v) return; setStatus(`<span class="spinner"></span> Loading ${escapeHtml(v)} …`,false,"#ebStatus"); try{ await ebAddById(v); setStatus("",false,"#ebStatus"); ebRender(); }catch(e){ setStatus("&#9888; "+escapeHtml(e.message),true,"#ebStatus"); } };
   if(add) add.onclick=doAdd; if(inp) inp.onkeydown=(e)=>{ if(e.key==="Enter") doAdd(); };
+  attachSuggest($("#ebInput"), $("#ebSuggest"), ()=> doAdd());
+  host.querySelectorAll("[data-fav]").forEach(b=> b.onclick=()=>{ const p=EB.players[+b.dataset.fav]; if(p&&p.member){ toggleFavorite({id:p.member.membershipId,type:p.member.membershipType,label:p.label}); ebRender(); } });
   host.querySelectorAll(".eb-imp-file").forEach(fl=> fl.onchange=(e)=>{ const idx=+fl.dataset.pl; const file=e.target.files[0]; if(!file) return; const rd=new FileReader(); rd.onload=()=>{ try{ const obj=JSON.parse(rd.result); const pl=EB.players[idx]; if(!pl) return; pl.ownedHashes=new Set(obj.ownedHashes||[]); if(obj.collectibles) pl.collectibles=Object.assign({},pl.collectibles||{},obj.collectibles); ebRender(); invToast("Imported vault for "+pl.label,true); }catch(err){ invToast("Bad file: "+err.message,false,true); } }; rd.readAsText(file); });
   host.querySelectorAll(".eb-paste").forEach(b=> b.onclick=async()=>{ const idx=+b.dataset.pl; const code=window.prompt("Paste your teammate share code:"); if(!code) return; try{ const obj=await fbReadCode(code); const pl=EB.players[idx]; if(!pl) return; pl.ownedHashes=new Set(obj.ownedHashes||[]); if(obj.collectibles) pl.collectibles=Object.assign({},pl.collectibles||{},obj.collectibles); ebRender(); invToast("Imported vault for "+pl.label,true); }catch(err){ invToast("Invalid share code.",false,true); } });
   host.querySelectorAll("[data-rm]").forEach(b=> b.onclick=()=>{ EB.players.splice(+b.dataset.rm,1); ebRender(); });
@@ -1550,7 +1577,7 @@ async function renderInventoryPage(force){
 
 renderExamples();
 renderCmpRecent();
-(async function init(){ const handled=await handleOAuthCallback(); if(getToken()){ renderAuthArea(null); if(!handled) loadSelf(); } })();
+(async function init(){ const handled=await handleOAuthCallback(); if(getToken()){ renderAuthArea(null); getFriends().catch(()=>{}); if(!handled) loadSelf(); } })();
 </script>
 </body>
 </html>
